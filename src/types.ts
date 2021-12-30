@@ -78,7 +78,7 @@ export type ProtocolPoolSelection = {
   topNSecondHop: number;
   topNWithEachBaseToken: number;
   topNWithBaseToken: number;
-  topNWithBaseTokenInSet: number;
+  topNWithBaseTokenInSet: boolean;
 };
 
 export type SwapConfig = {
@@ -100,6 +100,11 @@ export type Route = {
   paths: string[];
 };
 
+// sample queries on single route for many quote amounts
+export type AmountQuote = { amount: number; quote: number };
+export type RouteWithQuotes = [Route, AmountQuote];
+
+// quote and its corresponding route
 export type RouteWithValidQuote = {
   percent: number;
   amount: number;
