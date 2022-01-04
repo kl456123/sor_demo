@@ -1,3 +1,7 @@
+import { BigNumber } from 'ethers';
+
+import { Route, RouteWithValidQuote, TokenAmount } from './entities';
+
 export enum ChainId {
   MAINNET = 1,
   ROPSTEN = 3,
@@ -9,20 +13,6 @@ export enum ChainName {
   ROPSTEN = 'ropsten',
   RINKEBY = 'rinkeby',
 }
-
-// trading entities
-export type Token = {
-  name: string;
-  chainId: number;
-  address: string;
-  decimals: number;
-};
-
-export type Pool = {
-  id: string;
-  chainId: number;
-  address: string;
-};
 
 export enum TradeType {
   EXACT_INPUT = 0,
@@ -41,7 +31,7 @@ export type LocalCacheEntry<T> = {
 
 // dex sources to aggregate.
 
-export enum ERC20BridgeSource {
+export enum Protocol {
   UniswapV2 = 'Uniswap_V2',
   SushiSwap = 'SushiSwap',
   Curve = 'Curve',
@@ -78,6 +68,7 @@ export type ProtocolPoolSelection = {
   topNSecondHop: number;
   topNWithEachBaseToken: number;
   topNWithBaseToken: number;
+  topNTokenInOut: number;
   topNWithBaseTokenInSet: boolean;
 };
 
@@ -88,6 +79,7 @@ export type SwapConfig = {
 };
 
 export type RoutingConfig = {
+  blockNumber?: number;
   maxSplits: number;
   minSplits: number;
   distributionPercent: number;
@@ -95,27 +87,15 @@ export type RoutingConfig = {
   poolSelections: ProtocolPoolSelection;
 };
 
-export type Route = {
-  tokenIn: string;
-  paths: string[];
-};
-
 // sample queries on single route for many quote amounts
-export type AmountQuote = { amount: number; quote: number };
-export type RouteWithQuotes = [Route, AmountQuote];
-
-// quote and its corresponding route
-export type RouteWithValidQuote = {
-  percent: number;
-  amount: number;
-  route: Route;
-};
+export type AmountQuote = { amount: TokenAmount; quote: BigNumber };
+export type RouteWithQuotes = [Route, AmountQuote[]];
 
 export type SwapRoute = {
   routes: RouteWithValidQuote[];
   blockNumber: number;
-  quote: number;
-  quoteGasAdjusted: number;
+  quote: TokenAmount;
+  quoteAdjustedForGas: TokenAmount;
 };
 
 // common

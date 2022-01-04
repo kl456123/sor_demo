@@ -1,8 +1,9 @@
 // get sample quotes from quote contracts on-chain
 //
 //
+import { Route, TokenAmount } from './entities';
 import { Sampler } from './sampler';
-import { Route, RouteWithQuotes, TradeType } from './types';
+import { RouteWithQuotes, TradeType } from './types';
 
 export class QuoteProvider {
   private sampler: Sampler;
@@ -10,21 +11,21 @@ export class QuoteProvider {
     this.sampler = new Sampler(samplerAddress);
   }
   public async getQuotesManyExactIn(
-    amountIns: number[],
+    amountIns: TokenAmount[],
     routes: Route[]
   ): Promise<RouteWithQuotes[]> {
     return this.getQuotes(amountIns, routes, TradeType.EXACT_INPUT);
   }
 
   public async getQuotesManyExactOut(
-    amountIns: number[],
+    amountIns: TokenAmount[],
     routes: Route[]
   ): Promise<RouteWithQuotes[]> {
     return this.getQuotes(amountIns, routes, TradeType.EXACT_OUTPUT);
   }
 
   private async getQuotes(
-    amounts: number[],
+    amounts: TokenAmount[],
     routes: Route[],
     tradeType: TradeType
   ): Promise<RouteWithQuotes[]> {

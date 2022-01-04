@@ -13,3 +13,4 @@ function getGlobalLogger(): Logger {
 }
 
 export default { setGlobalLogger, getGlobalLogger };
+export { logger };

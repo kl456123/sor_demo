@@ -7,7 +7,8 @@ import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
 
-import { ChainId, ProviderConfig, SubgraphPool, Token } from './types';
+import { Token } from './entities';
+import { ChainId, ProviderConfig, SubgraphPool } from './types';
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
@@ -18,7 +19,7 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
 const PAGE_SIZE = 1000;
 const threshold = 0.025;
 
-export interface ISubgraphProvider {
+export interface ISubgraphPoolProvider {
   getPools(
     tokenIn?: Token,
     tokenOut?: Token,
@@ -40,7 +41,7 @@ type RawSubgraphPool = {
   trackedReserveETH: string;
 };
 
-export class SubgraphPoolProvider implements ISubgraphProvider {
+export class SubgraphPoolProvider implements ISubgraphPoolProvider {
   private client: GraphQLClient;
 
   constructor(

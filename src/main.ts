@@ -1,7 +1,9 @@
 import bunyan from 'bunyan';
 import dotenv from 'dotenv';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
+import { TOKENS } from './base_token';
+import { TokenAmount } from './entities';
 import logging from './logging';
 import { AlphaRouter } from './router';
 import { SubgraphPoolProvider } from './subgraph_provider';
@@ -31,19 +33,23 @@ const logger = bunyan.createLogger({
 });
 logging.setGlobalLogger(logger);
 
-async function quote(): Promise<SwapRoute> {
+async function quote(): Promise<SwapRoute | undefined> {
   const chainId = ChainId.MAINNET;
   const rpcUrl = process.env.JSON_RPC_PROVIDER!;
   const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
 
   const router = new AlphaRouter({ provider, chainId });
 
+  const tokens = TOKENS[chainId]!;
+  const baseToken = tokens.DAI;
+  const quoteToken = tokens.WETH;
   // find the best route for quote
-  const amount = 1000;
-  const recipient = '';
+  const amount = new TokenAmount(baseToken, BigNumber.from('1000'));
+  const recipient = '0x';
   const tradeType = TradeType.EXACT_INPUT;
   const swapRouters = await router.route(
     amount,
+    quoteToken,
     tradeType,
     recipient
       ? { deadline: 100, recipient, slippageTolerance: 0.00005 }
