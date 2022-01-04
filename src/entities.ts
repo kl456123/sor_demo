@@ -2,7 +2,6 @@
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import invariant from 'tiny-invariant';
-
 import { IPoolProvider } from './pool_provider';
 import { Protocol, TradeType } from './types';
 

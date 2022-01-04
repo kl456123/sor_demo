@@ -1,6 +1,5 @@
 import _ from 'lodash';
-
-import { ERC20BridgeSource } from './types';
+import { Protocol as ERC20BridgeSource } from './types';
 
 export default class SourceFilters {
   private readonly validSources: ERC20BridgeSource[];

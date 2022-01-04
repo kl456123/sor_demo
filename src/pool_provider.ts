@@ -1,9 +1,8 @@
 import { BigNumber } from 'ethers';
-import { NodeCache } from 'node-cache';
-
+import NodeCache from 'node-cache';
 import { Pool, Token, TokenAmount } from './entities';
 import { logger } from './logging';
-import { ProviderConfig } from './types';
+import { Protocol, ProviderConfig } from './types';
 
 export interface IPoolProvider {
   getPool(
@@ -26,8 +25,10 @@ export type PoolAccessor = {
 
 export class PoolProvider implements IPoolProvider {
   private nodecache: NodeCache;
+  private protocol: Protocol;
   constructor() {
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
+    this.protocol = Protocol.UniswapV2;
   }
 
   public async getPool(
@@ -58,15 +59,21 @@ export class PoolProvider implements IPoolProvider {
       `Deduped from ${tokenPairs.length} down to ${poolAddressSet.size}`
     );
 
+    logger.info(
+      `Got pools info from on-chain ${
+        providerConfig ? `${providerConfig.blockNumber}` : ''
+      }`
+    );
+
     for (let i = 0; i < sortedPoolAddresses.length; ++i) {
       const [token0, token1] = sortedTokenPairs[i];
       const poolAddress = sortedPoolAddresses[i]!;
       // mock reserve data
       const zero = BigNumber.from(0);
-      const pool = new Pool([
-        new TokenAmount(token0, zero),
-        new TokenAmount(token1, zero),
-      ]);
+      const pool = new Pool(
+        [new TokenAmount(token0, zero), new TokenAmount(token1, zero)],
+        this.protocol
+      );
 
       poolAddressToPool[poolAddress] = pool;
     }
@@ -99,7 +106,7 @@ export class PoolProvider implements IPoolProvider {
     }
 
     const poolAddress = '';
-    this.nodecache.set(poolAddress);
+    this.nodecache.set(cacheKey, poolAddress);
 
     return { poolAddress, token0, token1 };
   }

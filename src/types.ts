@@ -1,5 +1,4 @@
 import { BigNumber } from 'ethers';
-
 import { Route, RouteWithValidQuote, TokenAmount } from './entities';
 
 export enum ChainId {

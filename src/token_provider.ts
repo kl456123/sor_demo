@@ -1,6 +1,6 @@
 import _ from 'lodash';
-
 import { Token } from './entities';
+import { logger } from './logging';
 import { ChainId, ProviderConfig } from './types';
 
 export interface ITokenProvider {
@@ -21,7 +21,7 @@ export class TokenProvider implements ITokenProvider {
 
   public async getTokens(
     tokenAddresses: string[],
-    provider?: ProviderConfig
+    providerConfig?: ProviderConfig
   ): Promise<TokenAccessor> {
     const addressToToken: { [address: string]: Token } = {};
     const symbolToToken: { [symbol: string]: Token } = {};
@@ -44,6 +44,12 @@ export class TokenProvider implements ITokenProvider {
         });
         symbolToToken[symbol] = addressToToken[address]!;
       }
+
+      logger.info(
+        `Got token info from on-chain ${
+          providerConfig ? `${providerConfig.blockNumber}` : ''
+        }`
+      );
     }
 
     return {

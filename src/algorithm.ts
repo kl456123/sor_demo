@@ -1,16 +1,20 @@
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { Queue } from 'mnemonist';
-
 import { baseTokensByChain, WETH9 } from './base_token';
-import { Pool, Route, Token, TokenAmount } from './entities';
+import {
+  Pool,
+  Route,
+  RouteWithValidQuote,
+  Token,
+  TokenAmount,
+} from './entities';
 import { logger } from './logging';
 import { IPoolProvider, PoolAccessor } from './pool_provider';
 import { ISubgraphPoolProvider } from './subgraph_provider';
 import { ITokenProvider } from './token_provider';
 import {
   ChainId,
-  RouteWithValidQuote,
   RoutingConfig,
   SubgraphPool,
   SwapRoute,
@@ -267,8 +271,8 @@ export async function getCandidatePools({
         .filter(subgraphPool => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
-            (subgraphPool.token0.id == tokenInAddress ||
-              subgraphPool.token1.id == tokenInAddress)
+            (subgraphPool.token0.id == secondHopId ||
+              subgraphPool.token1.id == secondHopId)
           );
         })
         .slice(0, topNSecondHop)
@@ -292,8 +296,8 @@ export async function getCandidatePools({
         .filter(subgraphPool => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
-            (subgraphPool.token0.id == tokenOutAddress ||
-              subgraphPool.token1.id == tokenOutAddress)
+            (subgraphPool.token0.id == secondHopId ||
+              subgraphPool.token1.id == secondHopId)
           );
         })
         .slice(0, topNSecondHop)
@@ -361,12 +365,9 @@ export function getBestSwapRoute(
   percents: number[],
   routesWithValidQuotes: RouteWithValidQuote[],
   tradeType: TradeType,
-  chainId: ChainId,
   routingConfig: RoutingConfig
 ): SwapRoute | undefined {
-  const routes: RouteWithValidQuote[] = [];
   const blockNumber = 0;
-  const quoteGasAdjusted = 0;
 
   // sort with quotes for each percents
   const percentToQuotes: { [percent: number]: RouteWithValidQuote[] } = {};
@@ -387,8 +388,8 @@ export function getBestSwapRoute(
     (routeQuotes: RouteWithValidQuote[]) => {
       return routeQuotes.sort((routeQuoteA, routeQuoteB) => {
         return quoteCompFn(
-          routeQuoteA.quoteGasAdjusted,
-          routeQuoteB.quoteGasAdjusted
+          routeQuoteA.quoteAdjustedForGas,
+          routeQuoteB.quoteAdjustedForGas
         )
           ? -1
           : 1;
@@ -430,6 +431,9 @@ export function getBestSwapRoute(
   while (queue.size > 0) {
     const { remainingPercent, curRoutes, percentIndex } = queue.dequeue()!;
     splits++;
+    if (splits > maxSplits) {
+      continue;
+    }
     for (let i = percentIndex; i >= 0; i--) {
       const percentA = percents[i];
       if (percentA > remainingPercent) {
@@ -439,7 +443,7 @@ export function getBestSwapRoute(
       if (!percentToSortedQuotes[percentA]) {
         continue;
       }
-      const candidateRoutesA = percentToSortedQuotes[percentA]!;
+      const candidateRoutesA = percentToSortedQuotes[percentA];
       const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
         curRoutes,
         candidateRoutesA
@@ -452,7 +456,7 @@ export function getBestSwapRoute(
       const curRoutesNew = [...curRoutes, routeWithQuoteA];
 
       if (remainingPercentNew == 0 && splits >= minSplits) {
-        const quotesNew = _.map(curRoutesNew, r => r.quoteGasAdjusted);
+        const quotesNew = _.map(curRoutesNew, r => r.quoteAdjustedForGas);
         const quoteNew = sumFn(quotesNew);
         if (!bestQuote || quoteCompFn(quoteNew, bestQuote)) {
           bestQuote = quoteNew;
@@ -468,10 +472,40 @@ export function getBestSwapRoute(
     }
   }
   if (!bestSwap) {
+    logger.info('cannot find a valid swap');
     return undefined;
   }
 
-  return { bestSwap };
+  const quoteAdjustedForGas = sumFn(
+    _.map(bestSwap, routeWithValidQuote => {
+      return routeWithValidQuote.quoteAdjustedForGas;
+    })
+  );
+
+  const quote = sumFn(
+    _.map(bestSwap, routeWithValidQuote => {
+      return routeWithValidQuote.quoteAdjustedForGas;
+    })
+  );
+
+  // handle dust amount here
+  const totalAmount = _.reduce(
+    bestSwap,
+    (total, routeAmount) => {
+      return total.add(routeAmount.amount);
+    },
+    new TokenAmount(bestSwap[0]!.amount.token, BigNumber.from(0))
+  );
+
+  const missingAmount = amount.subtract(totalAmount);
+  if (missingAmount.amount.gt(0)) {
+    logger.info(`missing amount: ${missingAmount}`);
+    // add dust to the last path
+    bestSwap[bestSwap.length - 1]!.amount =
+      bestSwap[bestSwap.length - 1]!.amount.add(missingAmount);
+  }
+
+  return { routes: bestSwap, blockNumber, quote, quoteAdjustedForGas };
 }
 
 // make sure that dont select used pools again to avoid trading effects on the same pool

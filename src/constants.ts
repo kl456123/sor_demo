@@ -4,6 +4,7 @@ export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   poolSelections: {
     topN: 10,
     topNSecondHop: 6,
+    topNTokenInOut: 8,
 
     topNDirectSwaps: 1,
     topNWithEachBaseToken: 2,

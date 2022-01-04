@@ -1,6 +1,5 @@
 import { providers } from 'ethers';
 import _ from 'lodash';
-
 import {
   computeAllRoutes,
   getAmountDistribution,
@@ -15,22 +14,15 @@ import { QuoteProvider } from './quote-provider';
 import {
   ISubgraphPoolProvider,
   StaticFileSubgraphProvider,
-} from './static-file-subgraph-provider';
+} from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
-import {
-  ChainId,
-  RoutingConfig,
-  SwapConfig,
-  SwapRoute,
-  TradeType,
-} from './types';
+import { ChainId, RoutingConfig, SwapRoute, TradeType } from './types';
 
 export abstract class IRouter {
   abstract route(
     amount: TokenAmount,
     quoteToken: Token,
     tradeType: TradeType,
-    swapConfig?: SwapConfig,
     partialRoutingConfig?: Partial<RoutingConfig>
   ): Promise<SwapRoute | undefined>;
 }
@@ -54,7 +46,7 @@ export class AlphaRouter implements IRouter {
     this.provider = provider;
 
     // data provider
-    this.quoteProvider = new QuoteProvider({ samplerAddress: '0x' });
+    this.quoteProvider = new QuoteProvider(chainId, provider);
     this.gasPriceProvider = new GasPriceProvider();
     this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
@@ -65,7 +57,6 @@ export class AlphaRouter implements IRouter {
     amount: TokenAmount,
     quoteToken: Token,
     tradeType: TradeType,
-    swapConfig?: SwapConfig,
     partialRoutingConfig: Partial<RoutingConfig> = {}
   ): Promise<SwapRoute | undefined> {
     const blockNumber =
@@ -84,7 +75,8 @@ export class AlphaRouter implements IRouter {
       distributionPercent
     );
 
-    const { gasPriceWei } = this.gasPriceProvider.getGasPrice();
+    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+    gasPriceWei;
 
     // get all pools first
     const tokenIn =
@@ -151,7 +143,6 @@ export class AlphaRouter implements IRouter {
       percents,
       allRoutesWithValidQuotes,
       tradeType,
-      this.chainId,
       routingConfig
     );
     if (!swapRoute) {

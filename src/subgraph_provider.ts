@@ -1,12 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
+import fs from 'fs';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
-
-
+import path from 'path';
 import { Token } from './entities';
 import { ChainId, ProviderConfig, SubgraphPool } from './types';
 
@@ -58,8 +55,8 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
   }
 
   public async getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
+    _tokenIn?: Token,
+    _tokenOut?: Token,
     providerConfig?: ProviderConfig
   ): Promise<SubgraphPool[]> {
     let blockNumber = providerConfig?.blockNumber
@@ -158,7 +155,7 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
   }
 }
 
-export class StaticFileSubgraphProvider implements ISubgraphProvider {
+export class StaticFileSubgraphProvider implements ISubgraphPoolProvider {
   public async getPools(): Promise<SubgraphPool[]> {
     const poolsSanitized = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../data/v2pools.json'), 'utf8')

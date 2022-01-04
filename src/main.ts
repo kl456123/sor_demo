@@ -1,13 +1,21 @@
 import bunyan from 'bunyan';
 import dotenv from 'dotenv';
 import { BigNumber, ethers } from 'ethers';
-
+import { contractAddressesByChain } from './addresses';
 import { TOKENS } from './base_token';
 import { TokenAmount } from './entities';
 import logging from './logging';
 import { AlphaRouter } from './router';
+import { Sampler } from './sampler';
 import { SubgraphPoolProvider } from './subgraph_provider';
-import { ChainId, ProviderConfig, SwapRoute, TradeType } from './types';
+import {
+  ChainId,
+  Protocol,
+  ProviderConfig,
+  SwapRoute,
+  TradeType,
+} from './types';
+import { Erc20BridgeSampler__factory } from './types/other';
 
 // async function quote(tokenIn: Token, tokenOut: Token) {
 // tokenIn;
@@ -45,16 +53,9 @@ async function quote(): Promise<SwapRoute | undefined> {
   const quoteToken = tokens.WETH;
   // find the best route for quote
   const amount = new TokenAmount(baseToken, BigNumber.from('1000'));
-  const recipient = '0x';
+  // const recipient = '0x';
   const tradeType = TradeType.EXACT_INPUT;
-  const swapRouters = await router.route(
-    amount,
-    quoteToken,
-    tradeType,
-    recipient
-      ? { deadline: 100, recipient, slippageTolerance: 0.00005 }
-      : undefined
-  );
+  const swapRouters = await router.route(amount, quoteToken, tradeType);
   return swapRouters;
 }
 
@@ -78,8 +79,54 @@ async function getPools() {
   logging.getGlobalLogger().info(rawPools.length);
 }
 
-async function main() {
-  await quote();
+async function sample() {
+  const provider = ethers.getDefaultProvider('mainnet');
+  const sampler = new Sampler(ChainId.MAINNET, provider, {});
+  const tokens = TOKENS[ChainId.MAINNET]!;
+  const path = [tokens.USDC.address, tokens.WETH.address];
+  const fillAmounts = [
+    ethers.utils.parseUnits('2000', 6),
+    ethers.utils.parseUnits('4000', 6),
+  ];
+  const samplerRoutes = [
+    { protocol: Protocol.UniswapV2, path },
+    { protocol: Protocol.SushiSwap, path },
+  ];
+  const [dexQuotes] = await sampler.executeAsync(
+    sampler.getSellQuotes(fillAmounts, samplerRoutes)
+  );
+  console.log(dexQuotes);
 }
 
-main().catch(logging.getGlobalLogger().error);
+async function samplerContract() {
+  const provider = ethers.getDefaultProvider('mainnet');
+  const samplerAddress = contractAddressesByChain[ChainId.MAINNET]!.quoter;
+  const samplerContract = Erc20BridgeSampler__factory.connect(
+    samplerAddress,
+    provider
+  );
+  const tokens = TOKENS[ChainId.MAINNET]!;
+  const path = [tokens.USDC.address, tokens.WETH.address];
+  const fillAmounts = [
+    ethers.utils.parseUnits('2000', 6),
+    ethers.utils.parseUnits('4000', 6),
+  ];
+  const quotes = await samplerContract.sampleSellsFromUniswapV2(
+    path,
+    fillAmounts
+  );
+  console.log(quotes);
+}
+
+async function main() {
+  getPools;
+  quote;
+  sample;
+  samplerContract;
+  // await getPools();
+  // await quote();
+  await sample();
+  // samplerContract();
+}
+
+main().catch(console.error);
