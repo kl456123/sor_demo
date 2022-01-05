@@ -1,4 +1,4 @@
-import { RoutingConfig } from './types';
+import { Protocol, RoutingConfig } from './types';
 
 export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   poolSelections: {
@@ -15,4 +15,11 @@ export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   minSplits: 1,
   maxSplits: 5,
   distributionPercent: 5,
+};
+
+// TODO (change hardcode style)
+export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
+  Uniswap_V2: Protocol.UniswapV2,
+  SushiSwap: Protocol.SushiSwap,
+  Eth2Dai: Protocol.Eth2Dai,
 };

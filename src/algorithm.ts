@@ -1,7 +1,9 @@
 import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { Queue } from 'mnemonist';
+
 import { baseTokensByChain, WETH9 } from './base_token';
+import { PROTOCOLSTRMAP } from './constants';
 import {
   Pool,
   Route,
@@ -10,7 +12,11 @@ import {
   TokenAmount,
 } from './entities';
 import { logger } from './logging';
-import { IPoolProvider, PoolAccessor } from './pool_provider';
+import {
+  IPoolProvider,
+  PoolAccessor,
+  PoolInfoByProtocol,
+} from './pool_provider';
 import { ISubgraphPoolProvider } from './subgraph_provider';
 import { ITokenProvider } from './token_provider';
 import {
@@ -20,6 +26,7 @@ import {
   SwapRoute,
   TradeType,
 } from './types';
+import { routeToString } from './utils';
 
 // handle dust in the end of algorithm to make sure the sum of amounts equals to 100%
 const getAmountDistribution = (
@@ -30,9 +37,7 @@ const getAmountDistribution = (
   const amounts = [];
   for (let i = 1; i < 100 / distributionPercent; ++i) {
     percents.push(i * distributionPercent);
-    amounts.push(
-      amount.multiply(BigNumber.from((i * distributionPercent) / 100))
-    );
+    amounts.push(amount.multiply(i * distributionPercent).divide(100));
   }
   return [percents, amounts];
 };
@@ -63,6 +68,7 @@ export function computeAllRoutes(
       currentRoute[currentRoute.length - 1].involvesToken(tokenOut)
     ) {
       routes.push(new Route([...currentRoute], tokenIn, tokenOut));
+      return;
     }
     for (let i = 0; i < pools.length; ++i) {
       // return earily
@@ -90,7 +96,10 @@ export function computeAllRoutes(
 
   computeRoutes(tokenIn, tokenOut, [], tokenIn);
 
-  logger.info(routes, `Computed ${routes.length} possible routes.`);
+  logger.info(
+    routes.map(routeToString),
+    `Computed ${routes.length} possible routes.`
+  );
   return routes;
 }
 
@@ -143,8 +152,8 @@ export async function getCandidatePools({
       .forEach(poolAddress => poolAddressesSoFar.add(poolAddress));
   };
   // select best possible pools from all raw pools
-  const tokenInAddress = tokenIn.address;
-  const tokenOutAddress = tokenOut.address;
+  const tokenInAddress = tokenIn.address.toLowerCase();
+  const tokenOutAddress = tokenOut.address.toLowerCase();
   const baseTokens = baseTokensByChain[chainId];
 
   // filter pools between base token and tokenIn
@@ -152,7 +161,7 @@ export async function getCandidatePools({
     .flatMap((token: Token) => {
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
-          const tokenAddress = token.address;
+          const tokenAddress = token.address.toLowerCase();
           return (
             (subgraphPool.token0.id == tokenInAddress &&
               subgraphPool.token1.id == tokenAddress) ||
@@ -173,7 +182,7 @@ export async function getCandidatePools({
     .flatMap((token: Token) => {
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
-          const tokenAddress = token.address;
+          const tokenAddress = token.address.toLowerCase();
           return (
             (subgraphPool.token0.id == tokenOutAddress &&
               subgraphPool.token1.id == tokenAddress) ||
@@ -196,7 +205,7 @@ export async function getCandidatePools({
 
   // need to quote weth for gas estimation
   let top2EthQuoteTokenPool: SubgraphPool[] = [];
-  const wethAddress = WETH9[chainId]!.address;
+  const wethAddress = WETH9[chainId]?.address.toLowerCase();
   if (
     tokenOut.symbol != 'WETH' &&
     tokenOut.symbol != 'ETH' &&
@@ -328,33 +337,45 @@ export async function getCandidatePools({
   // get tokens and their infos on-chain
   const tokenAddresses = _(subgraphPools)
     .flatMap(subgraphPool => {
-      return [subgraphPool.token0.id, subgraphPool.token1.id];
+      return [
+        { address: subgraphPool.token0.id, symbol: subgraphPool.token0.symbol },
+        { address: subgraphPool.token1.id, symbol: subgraphPool.token1.symbol },
+      ];
     })
     .compact()
-    .uniq()
+    .uniqBy(tokenInfo => tokenInfo.address)
     .value();
 
   const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
     blockNumber,
   });
 
-  const tokenPairsRaw = _.map<SubgraphPool, [Token, Token] | undefined>(
-    subgraphPools,
-    subgraphPool => {
-      const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
-      const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
-      if (!tokenA || !tokenB) {
-        logger.info(
-          `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}`
-        );
-        return undefined;
-      }
-      return [tokenA, tokenB];
+  const tokenPairsInfoRaw = _.map<
+    SubgraphPool,
+    [[Token, Token], PoolInfoByProtocol] | undefined
+  >(subgraphPools, subgraphPool => {
+    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
+    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
+    if (!tokenA || !tokenB) {
+      logger.info(
+        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}`
+      );
+      return undefined;
     }
-  );
+    const poolInfo = {
+      protocol: PROTOCOLSTRMAP[subgraphPool.protocol],
+      tokens: [tokenA.address, tokenB.address],
+      address: subgraphPool.id,
+    };
+    return [[tokenA, tokenB], poolInfo];
+  });
 
-  const tokenPairs = _.compact(tokenPairsRaw);
-  const poolAccessor = await poolProvider.getPool(tokenPairs);
+  const tokenPairsInfo = _.compact(tokenPairsInfoRaw);
+  const tokenPairs = _.map(tokenPairsInfo, tokenPairInfo => tokenPairInfo[0]);
+  const poolsInfo = _.map(tokenPairsInfo, tokenPairInfo => tokenPairInfo[1]);
+  const poolAccessor = await poolProvider.getPool(tokenPairs, poolsInfo, {
+    blockNumber,
+  });
 
   return { poolAccessor };
 }
@@ -429,45 +450,50 @@ export function getBestSwapRoute(
   let bestQuote: TokenAmount | undefined;
 
   while (queue.size > 0) {
-    const { remainingPercent, curRoutes, percentIndex } = queue.dequeue()!;
+    let layer = queue.size;
     splits++;
     if (splits > maxSplits) {
-      continue;
+      logger.info(`Max splits reached. Stopping search.`);
+      break;
     }
-    for (let i = percentIndex; i >= 0; i--) {
-      const percentA = percents[i];
-      if (percentA > remainingPercent) {
-        continue;
-      }
+    while (layer--) {
+      const { remainingPercent, curRoutes, percentIndex } = queue.dequeue()!;
 
-      if (!percentToSortedQuotes[percentA]) {
-        continue;
-      }
-      const candidateRoutesA = percentToSortedQuotes[percentA];
-      const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
-        curRoutes,
-        candidateRoutesA
-      );
-      if (!routeWithQuoteA) {
-        continue;
-      }
-
-      const remainingPercentNew = remainingPercent - percentA;
-      const curRoutesNew = [...curRoutes, routeWithQuoteA];
-
-      if (remainingPercentNew == 0 && splits >= minSplits) {
-        const quotesNew = _.map(curRoutesNew, r => r.quoteAdjustedForGas);
-        const quoteNew = sumFn(quotesNew);
-        if (!bestQuote || quoteCompFn(quoteNew, bestQuote)) {
-          bestQuote = quoteNew;
-          bestSwap = curRoutesNew;
+      for (let i = percentIndex; i >= 0; i--) {
+        const percentA = percents[i];
+        if (percentA > remainingPercent) {
+          continue;
         }
-      } else {
-        queue.enqueue({
-          curRoutes: curRoutesNew,
-          percentIndex: i,
-          remainingPercent: remainingPercentNew,
-        });
+
+        if (!percentToSortedQuotes[percentA]) {
+          continue;
+        }
+        const candidateRoutesA = percentToSortedQuotes[percentA];
+        const routeWithQuoteA = findFirstRouteNotUsingUsedPools(
+          curRoutes,
+          candidateRoutesA
+        );
+        if (!routeWithQuoteA) {
+          continue;
+        }
+
+        const remainingPercentNew = remainingPercent - percentA;
+        const curRoutesNew = [...curRoutes, routeWithQuoteA];
+
+        if (remainingPercentNew == 0 && splits >= minSplits) {
+          const quotesNew = _.map(curRoutesNew, r => r.quoteAdjustedForGas);
+          const quoteNew = sumFn(quotesNew);
+          if (!bestQuote || quoteCompFn(quoteNew, bestQuote)) {
+            bestQuote = quoteNew;
+            bestSwap = curRoutesNew;
+          }
+        } else {
+          queue.enqueue({
+            curRoutes: curRoutesNew,
+            percentIndex: i,
+            remainingPercent: remainingPercentNew,
+          });
+        }
       }
     }
   }

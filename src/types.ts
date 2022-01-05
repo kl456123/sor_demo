@@ -1,4 +1,5 @@
 import { BigNumber } from 'ethers';
+
 import { Route, RouteWithValidQuote, TokenAmount } from './entities';
 
 export enum ChainId {
@@ -34,6 +35,7 @@ export enum Protocol {
   UniswapV2 = 'Uniswap_V2',
   SushiSwap = 'SushiSwap',
   Curve = 'Curve',
+  Eth2Dai = 'Eth2Dai',
 
   // BSC only
   PancakeSwapV2 = 'PancakeSwap_V2',
@@ -50,12 +52,15 @@ export type SubgraphPool = {
   id: string;
   token0: {
     id: string;
+    symbol: string;
   };
   token1: {
     id: string;
+    symbol: string;
   };
   supply: number;
   reserve: number;
+  protocol: string;
 };
 
 ////////////////////////////////

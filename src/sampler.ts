@@ -3,6 +3,7 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
+
 import { contractAddressesByChain } from './addresses';
 // import { Route, TokenAmount } from './entities';
 import { logger } from './logging';
@@ -110,6 +111,32 @@ export class SamplerOperation {
     });
   }
 
+  public getEth2DaiSellQuotes(
+    tokenAddressPath: string[],
+    takerFillAmounts: BigNumber[],
+    protocol: Protocol = Protocol.Eth2Dai
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: protocol,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromEth2Dai',
+      functionParams: [...tokenAddressPath, takerFillAmounts],
+    });
+  }
+
+  public getEth2DaiBuyQuotes(
+    tokenAddressPath: string[],
+    makerFillAmounts: BigNumber[],
+    protocol: Protocol = Protocol.Eth2Dai
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: protocol,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromEth2Dai',
+      functionParams: [...tokenAddressPath, makerFillAmounts],
+    });
+  }
+
   private getSellQuoteOperations(
     amounts: BigNumber[],
     routes: SamplerRoute[]
@@ -118,10 +145,10 @@ export class SamplerOperation {
       const protocol = route.protocol;
       switch (protocol) {
         case Protocol.UniswapV2:
-        case Protocol.SushiSwap: {
-          const path = route.path;
-          return this.getUniswapV2SellQuotes(path, amounts, protocol);
-        }
+        case Protocol.SushiSwap:
+          return this.getUniswapV2SellQuotes(route.path, amounts, protocol);
+        case Protocol.Eth2Dai:
+          return this.getEth2DaiSellQuotes(route.path, amounts, protocol);
         default:
           throw new Error(`Unsupported sell sample protocol: ${protocol}`);
       }
@@ -138,10 +165,10 @@ export class SamplerOperation {
       const protocol = route.protocol;
       switch (protocol) {
         case Protocol.UniswapV2:
-        case Protocol.SushiSwap: {
-          const path = route.path;
-          return this.getUniswapV2BuyQuotes(path, amounts, protocol);
-        }
+        case Protocol.SushiSwap:
+          return this.getUniswapV2BuyQuotes(route.path, amounts, protocol);
+        case Protocol.Eth2Dai:
+          return this.getEth2DaiBuyQuotes(route.path, amounts, protocol);
         default:
           throw new Error(`Unsupported buy sample protocol: ${protocol}`);
       }

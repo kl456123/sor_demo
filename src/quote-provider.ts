@@ -2,8 +2,9 @@
 //
 //
 import { providers } from 'ethers';
+
 import { Route, TokenAmount } from './entities';
-import { ContractOperation, DexSample, Sampler } from './sampler';
+import { DexSample, Sampler } from './sampler';
 import { ChainId, RouteWithQuotes, TradeType } from './types';
 
 export class QuoteProvider {
@@ -30,19 +31,21 @@ export class QuoteProvider {
     routes: Route[],
     tradeType: TradeType
   ): Promise<RouteWithQuotes[]> {
-    let batchOp: ContractOperation<DexSample[][]>;
     const fillAmounts = amounts.map(amt => amt.amount);
     const samplerRoutes = routes.map(route => {
       return { protocol: route.protocol, path: route.path.map(p => p.address) };
     });
+    let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {
-      batchOp = this.sampler.getSellQuotes(fillAmounts, samplerRoutes);
+      [dexQuotes] = await this.sampler.executeAsync(
+        this.sampler.getSellQuotes(fillAmounts, samplerRoutes)
+      );
     } else {
-      batchOp = this.sampler.getBuyQuotes(fillAmounts, samplerRoutes);
+      [dexQuotes] = await this.sampler.executeAsync(
+        this.sampler.getBuyQuotes(fillAmounts, samplerRoutes)
+      );
     }
-    const samplerPromise = this.sampler.executeAsync(batchOp);
 
-    const dexQuotes: DexSample[][] = await samplerPromise;
     const routesWithQuotes: RouteWithQuotes[] = dexQuotes.map((dexQuote, i) => {
       const amountQuote = dexQuote.map((quote, j) => {
         return { amount: amounts[j], quote: quote.output };

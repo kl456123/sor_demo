@@ -1,9 +1,12 @@
+import fs from 'fs';
+import path from 'path';
+
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
-import fs from 'fs';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
-import path from 'path';
+
+
 import { Token } from './entities';
 import { ChainId, ProviderConfig, SubgraphPool } from './types';
 
@@ -29,9 +32,11 @@ type RawSubgraphPool = {
   id: string;
   token0: {
     id: string;
+    symbol: string;
   };
   token1: {
     id: string;
+    symbol: string;
   };
   totalSupply: string;
   reserveETH: string;
@@ -149,7 +154,7 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
     );
 
     // postprocess
-    const poolsSanitized: SubgraphPool[] = filterPools(pools);
+    const poolsSanitized: SubgraphPool[] = filterPools(pools, 'Uniswap_V2');
 
     return poolsSanitized;
   }
@@ -160,19 +165,23 @@ export class StaticFileSubgraphProvider implements ISubgraphPoolProvider {
     const poolsSanitized = JSON.parse(
       fs.readFileSync(path.resolve(__dirname, '../data/v2pools.json'), 'utf8')
     ) as RawSubgraphPool[];
-    return filterPools(poolsSanitized);
+    return filterPools(poolsSanitized, 'Uniswap_V2');
   }
 }
 
-const filterPools = (pools: RawSubgraphPool[]): SubgraphPool[] => {
+const filterPools = (
+  pools: RawSubgraphPool[],
+  protocol: string
+): SubgraphPool[] => {
   return pools
     .filter(pool => parseFloat(pool.trackedReserveETH) > threshold)
     .map(pool => ({
       ...pool,
       id: pool.id.toLowerCase(),
-      token0: { id: pool.token0.id.toLowerCase() },
-      token1: { id: pool.token1.id.toLowerCase() },
+      token0: { id: pool.token0.id.toLowerCase(), symbol: pool.token0.symbol },
+      token1: { id: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
       supply: parseFloat(pool.totalSupply),
       reserve: parseFloat(pool.trackedReserveETH),
+      protocol,
     }));
 };

@@ -1,7 +1,9 @@
 // all base entities for trading
-import { BigNumber } from 'ethers';
+import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
+import { BigNumber as Big } from 'bignumber.js';
 import _ from 'lodash';
 import invariant from 'tiny-invariant';
+
 import { IPoolProvider } from './pool_provider';
 import { Protocol, TradeType } from './types';
 
@@ -45,38 +47,73 @@ class Token {
 class TokenAmount {
   public readonly token: Token;
   public readonly amount: BigNumber;
+  public readonly decimalScale: BigNumber;
   constructor(token: Token, amount: BigNumber) {
     this.token = token;
     this.amount = amount;
+    this.decimalScale = BigNumber.from(10).pow(this.token.decimals);
   }
 
-  public multiply(scale: BigNumber): TokenAmount {
-    return new TokenAmount(this.token, this.amount.mul(scale));
+  public multiply(other: BigNumberish): TokenAmount {
+    return new TokenAmount(this.token, this.amount.mul(other));
   }
 
-  public add(other: TokenAmount): TokenAmount {
+  public add(other: TokenAmount | BigNumber): TokenAmount {
+    if (this.isBigNumberish(other)) {
+      return new TokenAmount(this.token, this.amount.add(other));
+    }
     invariant(this.token.equals(other.token), 'TOKEN');
     return new TokenAmount(this.token, this.amount.add(other.amount));
   }
 
+  public divide(other: BigNumberish): TokenAmount {
+    return new TokenAmount(this.token, this.amount.div(other));
+  }
+
+  public isBigNumberish(other: any): other is BigNumberish {
+    return (
+      other instanceof BigNumber ||
+      typeof other === 'number' ||
+      typeof other === 'string'
+    );
+  }
+
   public subtract(other: TokenAmount): TokenAmount {
+    if (this.isBigNumberish(other)) {
+      return new TokenAmount(this.token, this.amount.sub(other));
+    }
     invariant(this.token.equals(other.token), 'TOKEN');
     return new TokenAmount(this.token, this.amount.sub(other.amount));
   }
 
-  public greatThan(other: TokenAmount): boolean {
+  public greatThan(other: TokenAmount | BigNumberish): boolean {
+    if (this.isBigNumberish(other)) {
+      return this.amount.gt(other);
+    }
     invariant(this.token.equals(other.token), 'TOKEN');
     return this.amount.gt(other.amount);
   }
 
-  public lessThan(other: TokenAmount): boolean {
+  public lessThan(other: TokenAmount | BigNumberish): boolean {
+    if (this.isBigNumberish(other)) {
+      return this.amount.lt(other);
+    }
     invariant(this.token.equals(other.token), 'TOKEN');
     return this.amount.lt(other.amount);
+  }
+
+  public toFixed(): string {
+    return this.amount.div(this.decimalScale).toString();
+  }
+  public toExact(): string {
+    return new Big(this.amount.toString())
+      .div(this.decimalScale.toString())
+      .toString();
   }
 }
 
 class Pool {
-  private readonly tokens: [TokenAmount, TokenAmount];
+  public readonly tokens: [TokenAmount, TokenAmount];
   public readonly protocol: Protocol;
   constructor(tokens: [TokenAmount, TokenAmount], protocol: Protocol) {
     this.tokens = tokens;
@@ -197,7 +234,11 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
 
     // get pools addresses
     this.poolAddresses = _.map(route.pools, pool => {
-      return poolProvider.getPoolAddress(pool.token0, pool.token1).poolAddress;
+      return poolProvider.getPoolAddress(
+        pool.token0,
+        pool.token1,
+        pool.protocol
+      ).poolAddress;
     });
   }
 }

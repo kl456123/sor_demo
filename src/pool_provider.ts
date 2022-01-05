@@ -1,51 +1,69 @@
 import { BigNumber } from 'ethers';
 import NodeCache from 'node-cache';
+
 import { Pool, Token, TokenAmount } from './entities';
 import { logger } from './logging';
-import { Protocol, ProviderConfig } from './types';
+import { ChainId, Protocol, ProviderConfig } from './types';
+
+export type PoolInfoByProtocol = {
+  protocol: Protocol;
+  address: string;
+  tokens: string[];
+};
 
 export interface IPoolProvider {
   getPool(
     tokenPairs: [Token, Token][],
+    poolsInfo: PoolInfoByProtocol[],
     providerConfig?: ProviderConfig
   ): Promise<PoolAccessor>;
 
   // return sorted token pairs
   getPoolAddress(
     tokenA: Token,
-    tokenB: Token
+    tokenB: Token,
+    protocol: Protocol
   ): { poolAddress: string; token0: Token; token1: Token };
 }
 
 export type PoolAccessor = {
-  getPool: (tokenA: Token, tokenB: Token) => Pool | undefined;
+  getPool: (
+    tokenA: Token,
+    tokenB: Token,
+    protocol: Protocol
+  ) => Pool | undefined;
   getPoolByAddress: (address: string) => Pool | undefined;
   getAllPools: () => Pool[];
 };
 
 export class PoolProvider implements IPoolProvider {
   private nodecache: NodeCache;
-  private protocol: Protocol;
-  constructor() {
+  constructor(public readonly chainId: ChainId) {
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
-    this.protocol = Protocol.UniswapV2;
   }
 
   public async getPool(
     tokenPairs: [Token, Token][],
+    poolsInfo: PoolInfoByProtocol[],
     providerConfig?: ProviderConfig
   ): Promise<PoolAccessor> {
     // only used for deduplication
     const poolAddressSet: Set<string> = new Set<string>();
     const sortedPoolAddresses: string[] = [];
     const sortedTokenPairs: Array<[Token, Token]> = [];
+    const sortedProtocols: Protocol[] = [];
     const poolAddressToPool: { [address: string]: Pool } = {};
 
-    for (const tokenPair of tokenPairs) {
-      const [tokenA, tokenB] = tokenPair;
+    // cache pool address first
+    this.cachePoolsInfo(poolsInfo);
+
+    for (let i = 0; i < tokenPairs.length; ++i) {
+      const [tokenA, tokenB] = tokenPairs[i];
+      const protocol = poolsInfo[i].protocol;
       const { poolAddress, token0, token1 } = this.getPoolAddress(
         tokenA,
-        tokenB
+        tokenB,
+        protocol
       );
       if (poolAddressSet.has(poolAddress)) {
         continue;
@@ -53,6 +71,7 @@ export class PoolProvider implements IPoolProvider {
       poolAddressSet.add(poolAddress);
       sortedTokenPairs.push([token0, token1]);
       sortedPoolAddresses.push(poolAddress);
+      sortedProtocols.push(protocol);
     }
 
     logger.debug(
@@ -60,7 +79,7 @@ export class PoolProvider implements IPoolProvider {
     );
 
     logger.info(
-      `Got pools info from on-chain ${
+      `Got pools info from on-chain blockNumber: ${
         providerConfig ? `${providerConfig.blockNumber}` : ''
       }`
     );
@@ -72,15 +91,19 @@ export class PoolProvider implements IPoolProvider {
       const zero = BigNumber.from(0);
       const pool = new Pool(
         [new TokenAmount(token0, zero), new TokenAmount(token1, zero)],
-        this.protocol
+        sortedProtocols[i]
       );
 
       poolAddressToPool[poolAddress] = pool;
     }
 
     return {
-      getPool: (tokenA: Token, tokenB: Token): Pool | undefined => {
-        const { poolAddress } = this.getPoolAddress(tokenA, tokenB);
+      getPool: (
+        tokenA: Token,
+        tokenB: Token,
+        protocol: Protocol
+      ): Pool | undefined => {
+        const { poolAddress } = this.getPoolAddress(tokenA, tokenB, protocol);
         return poolAddressToPool[poolAddress];
       },
       getPoolByAddress: (address: string): Pool | undefined => {
@@ -94,20 +117,46 @@ export class PoolProvider implements IPoolProvider {
 
   public getPoolAddress(
     tokenA: Token,
-    tokenB: Token
+    tokenB: Token,
+    protocol: Protocol
   ): { poolAddress: string; token0: Token; token1: Token } {
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
-    const cacheKey = ``;
+    const cacheKey = PoolProvider.calcCacheKey(
+      token0.address,
+      token1.address,
+      this.chainId,
+      protocol
+    );
     const cachedAddress = this.nodecache.get<string>(cacheKey);
-    if (cachedAddress) {
-      return { poolAddress: cachedAddress, token0, token1 };
+    if (!cachedAddress) {
+      throw new Error(
+        `cannot find pool address for ${tokenA}/${tokenB} in ${protocol}`
+      );
     }
 
-    const poolAddress = '';
-    this.nodecache.set(cacheKey, poolAddress);
+    return { poolAddress: cachedAddress, token0, token1 };
+  }
+  static calcCacheKey(
+    token0: string,
+    token1: string,
+    chainId: ChainId,
+    protocol: Protocol
+  ) {
+    return `${chainId}/${protocol}/${token0}/${token1}`;
+  }
 
-    return { poolAddress, token0, token1 };
+  private cachePoolsInfo(poolsInfo: PoolInfoByProtocol[]) {
+    poolsInfo.forEach(poolInfo => {
+      const [token0, token1] = poolInfo.tokens;
+      const cacheKey = PoolProvider.calcCacheKey(
+        token0,
+        token1,
+        this.chainId,
+        poolInfo.protocol
+      );
+      this.nodecache.set(cacheKey, poolInfo.address);
+    });
   }
 }

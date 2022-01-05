@@ -1,11 +1,12 @@
 import _ from 'lodash';
+
 import { Token } from './entities';
 import { logger } from './logging';
 import { ChainId, ProviderConfig } from './types';
 
 export interface ITokenProvider {
   getTokens(
-    tokenAddresses: string[],
+    tokenAddresses: TokenInfo[],
     provider?: ProviderConfig
   ): Promise<TokenAccessor>;
 }
@@ -16,26 +17,40 @@ export type TokenAccessor = {
   getAllTokens: () => Token[];
 };
 
+export type TokenInfo = {
+  address: string;
+  symbol: string;
+  decimals?: number;
+};
+
+const DEFAULT_DECIMALS = 18;
 export class TokenProvider implements ITokenProvider {
   constructor(private chainId: ChainId) {}
 
   public async getTokens(
-    tokenAddresses: string[],
+    tokensInfoRaw: TokenInfo[],
     providerConfig?: ProviderConfig
   ): Promise<TokenAccessor> {
     const addressToToken: { [address: string]: Token } = {};
     const symbolToToken: { [symbol: string]: Token } = {};
+
     // deduplicates
-    const addresses = _(tokenAddresses)
-      .map(address => address.toLowerCase())
-      .uniq()
+    const tokensInfo = _(tokensInfoRaw)
+      .map(tokenInfoRaw => {
+        return {
+          ...tokenInfoRaw,
+          address: tokenInfoRaw.address.toLowerCase(),
+        };
+      })
+      .uniqBy(tokenInfoRaw => tokenInfoRaw.address)
       .value();
-    if (addresses.length > 0) {
-      for (let i = 0; i < addresses.length; ++i) {
-        const address = addresses[i];
+
+    if (tokensInfo.length > 0) {
+      for (let i = 0; i < tokensInfo.length; ++i) {
+        const address = tokensInfo[i].address;
         // use mock data here
-        const symbol = 'TOKEN';
-        const decimals = 18;
+        const symbol = tokensInfo[i].symbol;
+        const decimals = tokensInfo[i].decimals ?? DEFAULT_DECIMALS;
         addressToToken[address] = new Token({
           chainId: this.chainId,
           address,
@@ -46,7 +61,7 @@ export class TokenProvider implements ITokenProvider {
       }
 
       logger.info(
-        `Got token info from on-chain ${
+        `Got token info from on-chain of blockNumber: ${
           providerConfig ? `${providerConfig.blockNumber}` : ''
         }`
       );

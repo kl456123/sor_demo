@@ -1,5 +1,6 @@
 import { providers } from 'ethers';
 import _ from 'lodash';
+
 import {
   computeAllRoutes,
   getAmountDistribution,
@@ -9,6 +10,7 @@ import {
 import { DEFAULT_ROUTER_CONFIG } from './constants';
 import { RouteWithValidQuote, Token, TokenAmount } from './entities';
 import { GasPriceProvider } from './gasprice-provider';
+import { logger } from './logging';
 import { IPoolProvider, PoolProvider } from './pool_provider';
 import { QuoteProvider } from './quote-provider';
 import {
@@ -17,6 +19,7 @@ import {
 } from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
 import { ChainId, RoutingConfig, SwapRoute, TradeType } from './types';
+import { routeAmountsToString } from './utils';
 
 export abstract class IRouter {
   abstract route(
@@ -50,7 +53,7 @@ export class AlphaRouter implements IRouter {
     this.gasPriceProvider = new GasPriceProvider();
     this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
-    this.poolProvider = new PoolProvider();
+    this.poolProvider = new PoolProvider(this.chainId);
   }
 
   public async route(
@@ -137,18 +140,33 @@ export class AlphaRouter implements IRouter {
       }
     }
 
+    if (allRoutesWithValidQuotes.length == 0) {
+      logger.info(`Received no valid quotes`);
+      return undefined;
+    }
+
     // get best route
-    const swapRoute = getBestSwapRoute(
+    const swapRoutes = getBestSwapRoute(
       amount,
       percents,
       allRoutesWithValidQuotes,
       tradeType,
       routingConfig
     );
-    if (!swapRoute) {
+    if (!swapRoutes) {
+      logger.error(`Could not find route.`);
       return undefined;
     }
+    const { quoteAdjustedForGas, quote, routes: routeAmounts } = swapRoutes;
 
-    return swapRoute;
+    // print swapRoute
+    logger.info(`Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`);
+    logger.info(`${routeAmountsToString(routeAmounts)}`);
+    logger.info(`\tRaw Quote Exact In:`);
+    logger.info(`\t\t${quote.amount.toString()}`);
+    logger.info(`\tGas Adjusted Quote In:`);
+    logger.info(`\t\t${quoteAdjustedForGas.amount.toString()}`);
+
+    return swapRoutes;
   }
 }
