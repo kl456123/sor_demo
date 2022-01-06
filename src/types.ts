@@ -43,6 +43,10 @@ export enum Protocol {
 
   // Polygon only
   QuickSwap = 'QuickSwap',
+  // need to determined lately
+  Unknow = 'Unknow',
+  // composed liquidity pool used to quote for multi-hop path
+  MultiHop = 'MultiHop',
 }
 
 // subgraph to fetch pools for specific sources
@@ -89,6 +93,8 @@ export type RoutingConfig = {
   distributionPercent: number;
   maxSwapsPerPath: number;
   poolSelections: ProtocolPoolSelection;
+  includedSources: Protocol[];
+  excludedSources: Protocol[];
 };
 
 // sample queries on single route for many quote amounts

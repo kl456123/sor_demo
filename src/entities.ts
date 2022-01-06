@@ -4,7 +4,7 @@ import { BigNumber as Big } from 'bignumber.js';
 import _ from 'lodash';
 import invariant from 'tiny-invariant';
 
-import { IPoolProvider } from './pool_provider';
+import { IPoolProvider, PoolProvider } from './pool_provider';
 import { Protocol, TradeType } from './types';
 
 class Token {
@@ -48,9 +48,9 @@ class TokenAmount {
   public readonly token: Token;
   public readonly amount: BigNumber;
   public readonly decimalScale: BigNumber;
-  constructor(token: Token, amount: BigNumber) {
+  constructor(token: Token, amount: BigNumberish) {
     this.token = token;
-    this.amount = amount;
+    this.amount = BigNumber.from(amount);
     this.decimalScale = BigNumber.from(10).pow(this.token.decimals);
   }
 
@@ -76,6 +76,9 @@ class TokenAmount {
       typeof other === 'number' ||
       typeof other === 'string'
     );
+  }
+  public toString(): string {
+    return `${this.amount.toString()} ${this.token.symbol}`;
   }
 
   public subtract(other: TokenAmount): TokenAmount {
@@ -143,7 +146,13 @@ class Route {
   public readonly output: Token;
   public readonly pools: Pool[];
   public readonly path: Token[];
-  constructor(pools: Pool[], input: Token, output: Token) {
+  public protocol: Protocol;
+  constructor(
+    pools: Pool[],
+    input: Token,
+    output: Token,
+    protocol: Protocol = Protocol.Unknow
+  ) {
     // pools[0].involvesToken();
     const path: Token[] = [input];
     invariant(pools[0].involvesToken(input), 'INPUT');
@@ -164,13 +173,11 @@ class Route {
     this.pools = pools;
     this.input = input;
     this.output = output;
+    this.protocol = protocol;
   }
 
   public get chainId(): number {
     return this.pools[0].chainId;
-  }
-  public get protocol(): Protocol {
-    return this.pools[0].protocol;
   }
 }
 
@@ -183,6 +190,7 @@ export interface IRouteWithValidQuote {
   tradeType: TradeType;
   poolAddresses: string[];
   tokenPath: Token[];
+  protocol: Protocol;
 }
 
 export type RouteWithValidQuoteParams = {
@@ -203,8 +211,10 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
   public route: Route;
   public tradeType: TradeType;
   public poolAddresses: string[];
+  public poolKeys: string[];
   public tokenPath: Token[];
   public gasCostInToken: TokenAmount;
+  public protocol: Protocol;
   constructor({
     amount,
     percent,
@@ -240,6 +250,16 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
         pool.protocol
       ).poolAddress;
     });
+
+    this.poolKeys = _.map(route.pools, pool => {
+      return PoolProvider.calcCacheKey(
+        pool.token0.address,
+        pool.token1.address,
+        pool.chainId,
+        this.protocol
+      );
+    });
+    this.protocol = this.route.protocol;
   }
 }
 

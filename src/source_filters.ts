@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { Protocol as ERC20BridgeSource } from './types';
 
-export default class SourceFilters {
+export class SourceFilters {
   private readonly validSources: ERC20BridgeSource[];
 
   private readonly excludedSources: ERC20BridgeSource[];

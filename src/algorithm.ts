@@ -535,23 +535,22 @@ export function getBestSwapRoute(
 }
 
 // make sure that dont select used pools again to avoid trading effects on the same pool
+// NOTE: use pool keys to identify liquidity pool
 const findFirstRouteNotUsingUsedPools = (
   usedRoutes: RouteWithValidQuote[],
   candidateRouteQuotes: RouteWithValidQuote[]
 ): RouteWithValidQuote | null => {
-  const poolAddressSet = new Set();
-  const usedPoolAddresses = _(usedRoutes)
-    .flatMap(r => r.poolAddresses)
+  const poolKeysSet = new Set();
+  const usedPoolKeys = _(usedRoutes)
+    .flatMap(r => r.poolKeys)
     .value();
-  for (const poolAddress of usedPoolAddresses) {
-    poolAddressSet.add(poolAddress);
+  for (const poolKey of usedPoolKeys) {
+    poolKeysSet.add(poolKey);
   }
 
   for (const routeQuote of candidateRouteQuotes) {
     if (
-      routeQuote.poolAddresses.some(poolAddress =>
-        poolAddressSet.has(poolAddress)
-      )
+      routeQuote.poolAddresses.some(poolAddress => poolKeysSet.has(poolAddress))
     ) {
       continue;
     }

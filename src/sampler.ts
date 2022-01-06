@@ -3,6 +3,7 @@
 import { Interface } from '@ethersproject/abi';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
+import invariant from 'tiny-invariant';
 
 import { contractAddressesByChain } from './addresses';
 // import { Route, TokenAmount } from './entities';
@@ -116,6 +117,7 @@ export class SamplerOperation {
     takerFillAmounts: BigNumber[],
     protocol: Protocol = Protocol.Eth2Dai
   ): SourceContractOperation {
+    invariant(tokenAddressPath.length == 2, 'sell quote in Eth2Dai');
     return new SamplerContractOperation({
       protocol: protocol,
       contractInterface: Erc20BridgeSampler__factory.createInterface(),
@@ -129,6 +131,7 @@ export class SamplerOperation {
     makerFillAmounts: BigNumber[],
     protocol: Protocol = Protocol.Eth2Dai
   ): SourceContractOperation {
+    invariant(tokenAddressPath.length == 2, 'buy quote in Eth2Dai');
     return new SamplerContractOperation({
       protocol: protocol,
       contractInterface: Erc20BridgeSampler__factory.createInterface(),

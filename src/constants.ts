@@ -15,6 +15,8 @@ export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   minSplits: 1,
   maxSplits: 5,
   distributionPercent: 5,
+  includedSources: [],
+  excludedSources: [],
 };
 
 // TODO (change hardcode style)

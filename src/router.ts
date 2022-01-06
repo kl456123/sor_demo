@@ -8,18 +8,25 @@ import {
   getCandidatePools,
 } from './algorithm';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
-import { RouteWithValidQuote, Token, TokenAmount } from './entities';
+import { Route, RouteWithValidQuote, Token, TokenAmount } from './entities';
 import { GasPriceProvider } from './gasprice-provider';
 import { logger } from './logging';
 import { IPoolProvider, PoolProvider } from './pool_provider';
 import { QuoteProvider } from './quote-provider';
+import { SourceFilters } from './source_filters';
 import {
   ISubgraphPoolProvider,
   StaticFileSubgraphProvider,
 } from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
-import { ChainId, RoutingConfig, SwapRoute, TradeType } from './types';
-import { routeAmountsToString } from './utils';
+import {
+  ChainId,
+  Protocol,
+  RoutingConfig,
+  SwapRoute,
+  TradeType,
+} from './types';
+import { isValidSourceForRoute, routeAmountsToString } from './utils';
 
 export abstract class IRouter {
   abstract route(
@@ -43,6 +50,7 @@ export class AlphaRouter implements IRouter {
   protected subgraphPoolProvider: ISubgraphPoolProvider;
   protected tokenProvider: ITokenProvider;
   protected poolProvider: IPoolProvider;
+  protected sourceFilters: SourceFilters;
   constructor({ chainId, provider }: AlphaRouterParams) {
     this.chainId = chainId;
     // node provider
@@ -54,6 +62,10 @@ export class AlphaRouter implements IRouter {
     this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
     this.poolProvider = new PoolProvider(this.chainId);
+    this.sourceFilters = new SourceFilters([
+      Protocol.Eth2Dai,
+      Protocol.UniswapV2,
+    ]);
   }
 
   public async route(
@@ -105,12 +117,27 @@ export class AlphaRouter implements IRouter {
       // handler except
       return undefined;
     }
+    // filter sources that is both supported and requested
+    const { includedSources, excludedSources } = routingConfig;
+    const requestFilters = SourceFilters.all()
+      .exclude(excludedSources)
+      .include(includedSources);
+    const quoteFilters = this.sourceFilters.merge(requestFilters);
+    const routesByProtocol = _.flatMap(routes, route => {
+      return _.flatMap(quoteFilters.sources(), source => {
+        if (!isValidSourceForRoute(source, route)) {
+          return [];
+        }
+        return new Route(route.pools, route.input, route.output, source);
+      });
+    });
+
     // get quotes
     const quoteFn =
       tradeType == TradeType.EXACT_INPUT
         ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
         : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
-    const routesWithQuotes = await quoteFn(amounts, routes);
+    const routesWithQuotes = await quoteFn(amounts, routesByProtocol);
 
     // postprocess of routes with quotes
     const allRoutesWithValidQuotes = [];
@@ -123,9 +150,15 @@ export class AlphaRouter implements IRouter {
         const percent = percents[i];
         const { quote, amount } = amountQuote;
         // skip if no quote
-        if (!quote) {
+        if (!quote || quote.lte(0)) {
+          logger.debug(
+            `Dropping a null quote ${amount.toString()} for routing path in ${
+              route.protocol
+            }.`
+          );
           continue;
         }
+
         const routeWithValidQuote = new RouteWithValidQuote({
           quoteToken,
           amount,
@@ -145,6 +178,8 @@ export class AlphaRouter implements IRouter {
       return undefined;
     }
 
+    logger.debug(`${routeAmountsToString(allRoutesWithValidQuotes)}`);
+
     // get best route
     const swapRoutes = getBestSwapRoute(
       amount,
@@ -160,7 +195,9 @@ export class AlphaRouter implements IRouter {
     const { quoteAdjustedForGas, quote, routes: routeAmounts } = swapRoutes;
 
     // print swapRoute
-    logger.info(`Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`);
+    logger.info(
+      `Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`
+    );
     logger.info(`${routeAmountsToString(routeAmounts)}`);
     logger.info(`\tRaw Quote Exact In:`);
     logger.info(`\t\t${quote.amount.toString()}`);

@@ -18,7 +18,7 @@ import {
   SwapRoute,
   TradeType,
 } from './types';
-import { UniswapV2Router02__factory, UniswapV2Router02 } from './types/v2';
+import { UniswapV2Router02, UniswapV2Router02__factory } from './types/v2';
 
 dotenv.config();
 
@@ -39,7 +39,7 @@ type TradeParams = {
   quoteToken: Token;
   tradeType: TradeType;
 };
-const UNISWAP_ROUTER_ADDRESS='0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+const UNISWAP_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
@@ -56,7 +56,10 @@ class TestSuite {
     this.sampler = new Sampler(this.chainId, this.provider, {});
     this.subgraphPoolProvider = new SubgraphPoolProvider(this.chainId);
     // uniswap router used to calculate slippage
-    this.uniswapRouter02 = UniswapV2Router02__factory.connect(UNISWAP_ROUTER_ADDRESS, this.provider);
+    this.uniswapRouter02 = UniswapV2Router02__factory.connect(
+      UNISWAP_ROUTER_ADDRESS,
+      this.provider
+    );
   }
 
   public async quote({
@@ -66,6 +69,7 @@ class TestSuite {
   }: TradeParams): Promise<SwapRoute | undefined> {
     const swapRoute = await this.router.route(amount, quoteToken, tradeType, {
       minSplits: 1,
+      // excludedSources: [Protocol.UniswapV2]
     });
     return swapRoute;
   }
@@ -81,7 +85,7 @@ class TestSuite {
         : [quoteToken, amount.token];
     const path = tradedTokens.map(token => token.address);
     const fillAmounts = [amount.amount];
-      // TODO(adapt route path to cross protocols instead of routing in single protocol)
+    // TODO(adapt route path to cross protocols instead of routing in single protocol)
     const samplerRoutes = [
       { protocol: Protocol.UniswapV2, path },
       { protocol: Protocol.Eth2Dai, path },
@@ -118,13 +122,14 @@ async function main() {
   // trade params
   const tokens = TOKENS[chainId]!;
   const baseToken = tokens.WETH;
-  const quoteToken = tokens.USDC;
+  const quoteToken = tokens.DAI;
   // find the best route for quote
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
     ethers.utils.parseUnits('1000', baseToken.decimals)
   );
+  logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
 
   const swapRoute = await testSuite.quote({ amount, quoteToken, tradeType });
   if (!swapRoute) {
