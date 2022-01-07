@@ -33,7 +33,11 @@ export class QuoteProvider {
   ): Promise<RouteWithQuotes[]> {
     const fillAmounts = amounts.map(amt => amt.amount);
     const samplerRoutes = routes.map(route => {
-      return { protocol: route.protocol, path: route.path.map(p => p.address) };
+      return {
+        protocol: route.protocol,
+        path: route.path.map(p => p.address),
+        poolAddress: route.poolAddress,
+      };
     });
     let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {

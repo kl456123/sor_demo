@@ -121,13 +121,13 @@ async function main() {
 
   // trade params
   const tokens = TOKENS[chainId]!;
-  const baseToken = tokens.WETH;
+  const baseToken = tokens.USDC;
   const quoteToken = tokens.DAI;
   // find the best route for quote
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('1000', baseToken.decimals)
+    ethers.utils.parseUnits('10000000', baseToken.decimals)
   );
   logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
 

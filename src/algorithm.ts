@@ -29,7 +29,7 @@ import {
 import { routeToString } from './utils';
 
 // handle dust in the end of algorithm to make sure the sum of amounts equals to 100%
-const getAmountDistribution = (
+export const getAmountDistribution = (
   amount: TokenAmount,
   distributionPercent: number
 ): [number[], TokenAmount[]] => {
@@ -549,14 +549,10 @@ const findFirstRouteNotUsingUsedPools = (
   }
 
   for (const routeQuote of candidateRouteQuotes) {
-    if (
-      routeQuote.poolAddresses.some(poolAddress => poolKeysSet.has(poolAddress))
-    ) {
+    if (routeQuote.poolKeys.some(poolKey => poolKeysSet.has(poolKey))) {
       continue;
     }
     return routeQuote;
   }
   return null;
 };
-
-export { getAmountDistribution };

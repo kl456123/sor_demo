@@ -147,11 +147,13 @@ class Route {
   public readonly pools: Pool[];
   public readonly path: Token[];
   public protocol: Protocol;
+  public poolAddress?: string;
   constructor(
     pools: Pool[],
     input: Token,
     output: Token,
-    protocol: Protocol = Protocol.Unknow
+    protocol: Protocol = Protocol.Unknow,
+    poolAddress?: string
   ) {
     // pools[0].involvesToken();
     const path: Token[] = [input];
@@ -174,10 +176,14 @@ class Route {
     this.input = input;
     this.output = output;
     this.protocol = protocol;
+    this.poolAddress = poolAddress;
   }
 
   public get chainId(): number {
     return this.pools[0].chainId;
+  }
+  public get isPlaced() {
+    return this.poolAddress !== undefined;
   }
 }
 
@@ -256,7 +262,7 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
         pool.token0.address,
         pool.token1.address,
         pool.chainId,
-        this.protocol
+        this.route.protocol
       );
     });
     this.protocol = this.route.protocol;

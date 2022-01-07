@@ -8,9 +8,10 @@ import {
   getCandidatePools,
 } from './algorithm';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
-import { Route, RouteWithValidQuote, Token, TokenAmount } from './entities';
+import { RouteWithValidQuote, Token, TokenAmount } from './entities';
 import { GasPriceProvider } from './gasprice-provider';
 import { logger } from './logging';
+import { Placer } from './placer';
 import { IPoolProvider, PoolProvider } from './pool_provider';
 import { QuoteProvider } from './quote-provider';
 import { SourceFilters } from './source_filters';
@@ -26,7 +27,7 @@ import {
   SwapRoute,
   TradeType,
 } from './types';
-import { isValidSourceForRoute, routeAmountsToString } from './utils';
+import { routeAmountsToString } from './utils';
 
 export abstract class IRouter {
   abstract route(
@@ -65,6 +66,7 @@ export class AlphaRouter implements IRouter {
     this.sourceFilters = new SourceFilters([
       Protocol.Eth2Dai,
       Protocol.UniswapV2,
+      Protocol.Curve,
     ]);
   }
 
@@ -83,6 +85,8 @@ export class AlphaRouter implements IRouter {
       partialRoutingConfig,
       { blockNumber }
     );
+    // log configs
+    logger.info(`routing config: ${JSON.stringify(routingConfig, null, 2)}`);
 
     const { distributionPercent } = routingConfig;
     const [percents, amounts] = getAmountDistribution(
@@ -123,14 +127,7 @@ export class AlphaRouter implements IRouter {
       .exclude(excludedSources)
       .include(includedSources);
     const quoteFilters = this.sourceFilters.merge(requestFilters);
-    const routesByProtocol = _.flatMap(routes, route => {
-      return _.flatMap(quoteFilters.sources(), source => {
-        if (!isValidSourceForRoute(source, route)) {
-          return [];
-        }
-        return new Route(route.pools, route.input, route.output, source);
-      });
-    });
+    const routesByProtocol = Placer.placeRoute(routes, quoteFilters.sources());
 
     // get quotes
     const quoteFn =
@@ -178,7 +175,7 @@ export class AlphaRouter implements IRouter {
       return undefined;
     }
 
-    logger.debug(`${routeAmountsToString(allRoutesWithValidQuotes)}`);
+    // logger.debug(`${routeAmountsToString(allRoutesWithValidQuotes)}`);
 
     // get best route
     const swapRoutes = getBestSwapRoute(

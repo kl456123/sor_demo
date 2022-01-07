@@ -1,7 +1,6 @@
 import _ from 'lodash';
 
 import { Route, RouteWithValidQuote, TokenAmount } from './entities';
-import { Protocol } from './types';
 
 export const routeToString = (route: Route) => {
   const routeStr = [];
@@ -41,24 +40,4 @@ export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]) => {
 export const routeAmountToString = (routeAmount: RouteWithValidQuote) => {
   const { route, amount } = routeAmount;
   return `${amount.amount.toString()} = ${routeToString(route)}`;
-};
-
-export const isValidSourceForRoute = (
-  protocol: Protocol,
-  route: Route
-): boolean => {
-  switch (protocol) {
-    case Protocol.Eth2Dai: {
-      if (route.path.length !== 2) {
-        return false;
-      }
-      const symbols = _.map(route.path, token => token.symbol);
-      return (
-        (symbols[0] === 'DAI' && symbols[1] === 'WETH') ||
-        (symbols[0] === 'WETH' && symbols[1] === 'DAI')
-      );
-    }
-    default:
-      return true;
-  }
 };

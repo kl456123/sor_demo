@@ -8,6 +8,7 @@ import invariant from 'tiny-invariant';
 import { contractAddressesByChain } from './addresses';
 // import { Route, TokenAmount } from './entities';
 import { logger } from './logging';
+import { getCurveInfosForPool } from './markets/curve';
 import { ChainId, Protocol } from './types';
 import { Erc20BridgeSampler, Erc20BridgeSampler__factory } from './types/other';
 
@@ -24,6 +25,7 @@ export interface SourceContractOperation
 
 export interface SamplerRoute {
   protocol: Protocol;
+  poolAddress?: string;
   path: string[];
 }
 
@@ -140,6 +142,34 @@ export class SamplerOperation {
     });
   }
 
+  public getCurveBuyQuotes(
+    poolAddress: string,
+    fromTokenIdx: number,
+    toTokenIdx: number,
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Curve,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromCurve',
+      functionParams: [poolAddress, fromTokenIdx, toTokenIdx, makerFillAmounts],
+    });
+  }
+
+  public getCurveSellQuotes(
+    poolAddress: string,
+    fromTokenIdx: number,
+    toTokenIdx: number,
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Curve,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromCurve',
+      functionParams: [poolAddress, fromTokenIdx, toTokenIdx, takerFillAmounts],
+    });
+  }
+
   private getSellQuoteOperations(
     amounts: BigNumber[],
     routes: SamplerRoute[]
@@ -152,6 +182,19 @@ export class SamplerOperation {
           return this.getUniswapV2SellQuotes(route.path, amounts, protocol);
         case Protocol.Eth2Dai:
           return this.getEth2DaiSellQuotes(route.path, amounts, protocol);
+        case Protocol.Curve: {
+          invariant(route.poolAddress, 'Curve Pool Address');
+          const poolAddress = route.poolAddress;
+          const curveInfo = getCurveInfosForPool(poolAddress);
+          const fromTokenIdx = curveInfo.tokens.indexOf(route.path[0]);
+          const toTokenIdx = curveInfo.tokens.indexOf(route.path[1]);
+          return this.getCurveSellQuotes(
+            poolAddress,
+            fromTokenIdx,
+            toTokenIdx,
+            amounts
+          );
+        }
         default:
           throw new Error(`Unsupported sell sample protocol: ${protocol}`);
       }
@@ -172,6 +215,19 @@ export class SamplerOperation {
           return this.getUniswapV2BuyQuotes(route.path, amounts, protocol);
         case Protocol.Eth2Dai:
           return this.getEth2DaiBuyQuotes(route.path, amounts, protocol);
+        case Protocol.Curve: {
+          invariant(route.poolAddress, 'Curve Pool Address');
+          const poolAddress = route.poolAddress;
+          const curveInfo = getCurveInfosForPool(poolAddress);
+          const fromTokenIdx = curveInfo.tokens.indexOf(route.path[0]);
+          const toTokenIdx = curveInfo.tokens.indexOf(route.path[1]);
+          return this.getCurveBuyQuotes(
+            poolAddress,
+            fromTokenIdx,
+            toTokenIdx,
+            amounts
+          );
+        }
         default:
           throw new Error(`Unsupported buy sample protocol: ${protocol}`);
       }
