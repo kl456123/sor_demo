@@ -35,7 +35,7 @@ export const getAmountDistribution = (
 ): [number[], TokenAmount[]] => {
   const percents = [];
   const amounts = [];
-  for (let i = 1; i < 100 / distributionPercent; ++i) {
+  for (let i = 1; i <= 100 / distributionPercent; ++i) {
     percents.push(i * distributionPercent);
     amounts.push(amount.multiply(i * distributionPercent).divide(100));
   }
@@ -448,6 +448,12 @@ export function getBestSwapRoute(
   let splits = 1;
   let bestSwap: RouteWithValidQuote[] | undefined;
   let bestQuote: TokenAmount | undefined;
+
+  // init best swap with no splitted route path
+  if (percentToSortedQuotes[100][0]) {
+    bestSwap = [percentToSortedQuotes[100][0]];
+    bestQuote = percentToSortedQuotes[100][0].quoteAdjustedForGas;
+  }
 
   while (queue.size > 0) {
     let layer = queue.size;
