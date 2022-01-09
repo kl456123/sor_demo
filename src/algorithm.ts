@@ -516,7 +516,7 @@ export function getBestSwapRoute(
 
   const quote = sumFn(
     _.map(bestSwap, routeWithValidQuote => {
-      return routeWithValidQuote.quoteAdjustedForGas;
+      return routeWithValidQuote.quote;
     })
   );
 

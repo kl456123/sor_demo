@@ -94,9 +94,13 @@ export class Orderbook {
   }
 }
 
-export function sortOrders<T extends Order>(orders: T[], descendingForBuy: boolean): T[] {
-    // convert some fields to bignumber
-  const copiedOrders = _.cloneDeep(_.map(orders, order =>
+export function sortOrders<T extends Order>(
+  orders: T[],
+  descendingForBuy: boolean
+): T[] {
+  // convert some fields to bignumber
+  const copiedOrders = _.cloneDeep(
+    _.map(orders, order =>
       convertToBigNumber(order, [
         'makerAssetAmount',
         'makerFee',
@@ -105,17 +109,18 @@ export function sortOrders<T extends Order>(orders: T[], descendingForBuy: boole
         'expirationTimeSeconds',
         'salt',
       ])
-    ));
+    )
+  );
   copiedOrders.sort((firstOrder, secondOrder) => {
     const firstOrderRate = getTakerFeeAdjustedRateOfOrder(firstOrder);
     const secondOrderRate = getTakerFeeAdjustedRateOfOrder(secondOrder);
     return firstOrderRate.comparedTo(secondOrderRate);
   });
-    if(descendingForBuy){
-        return copiedOrders;
-    }else{
-        return copiedOrders.reverse();
-    }
+  if (descendingForBuy) {
+    return copiedOrders;
+  } else {
+    return copiedOrders.reverse();
+  }
 }
 
 // taker should pay fee with takerToken

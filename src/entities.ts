@@ -205,6 +205,7 @@ export type RouteWithValidQuoteParams = {
   rawQuote: BigNumber;
   quoteToken: Token;
   route: Route;
+  estimateGasCost: (routeWithValidQuote: RouteWithValidQuote) => TokenAmount;
   tradeType: TradeType;
   poolProvider: IPoolProvider;
 };
@@ -227,6 +228,7 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
     rawQuote,
     quoteToken,
     route,
+    estimateGasCost,
     tradeType,
     poolProvider,
   }: RouteWithValidQuoteParams) {
@@ -238,7 +240,7 @@ class RouteWithValidQuote implements IRouteWithValidQuote {
     this.tokenPath = route.path;
 
     // no gas cost considered
-    this.gasCostInToken = new TokenAmount(quoteToken, BigNumber.from(0));
+    this.gasCostInToken = estimateGasCost(this);
 
     if (tradeType == TradeType.EXACT_INPUT) {
       const quoteGasAdjusted = this.quote.subtract(this.gasCostInToken);

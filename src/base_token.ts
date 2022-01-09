@@ -65,3 +65,8 @@ export const TOKENS: { [chainId in ChainId]?: { [symbol: string]: Token } } = {
     WETH: WETH_MAINNET,
   },
 };
+
+// usd token for gas
+export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
+  [ChainId.MAINNET]: [USDC_MAINNET, USDT_MAINNET, DAI_MAINNET],
+};

@@ -3,7 +3,7 @@
 //
 import { orderCalculationUtils } from '@0x/order-utils';
 import { BigNumber } from 'bignumber.js';
-import { providers, BigNumber as EtherBigNumber } from 'ethers';
+import { BigNumber as EtherBigNumber, providers } from 'ethers';
 import _ from 'lodash';
 
 import { Route, TokenAmount } from './entities';
@@ -25,7 +25,12 @@ export class QuoteProvider {
     routesByLimitOrder: Route[],
     routesByProtocol: Route[]
   ): Promise<RouteWithQuotes[]> {
-    return this.getQuotes(amountIns, routesByLimitOrder, routesByProtocol, TradeType.EXACT_INPUT);
+    return this.getQuotes(
+      amountIns,
+      routesByLimitOrder,
+      routesByProtocol,
+      TradeType.EXACT_INPUT
+    );
   }
 
   public async getQuotesManyExactOut(
@@ -33,7 +38,12 @@ export class QuoteProvider {
     routesByLimitOrder: Route[],
     routesByProtocol: Route[]
   ): Promise<RouteWithQuotes[]> {
-    return this.getQuotes(amountOuts, routesByLimitOrder, routesByProtocol, TradeType.EXACT_OUTPUT);
+    return this.getQuotes(
+      amountOuts,
+      routesByLimitOrder,
+      routesByProtocol,
+      TradeType.EXACT_OUTPUT
+    );
   }
 
   private async getQuotes(
@@ -51,9 +61,11 @@ export class QuoteProvider {
       };
     });
     // handle limit orders first
-    const routesWithQuotesByLimitOrder = await Promise.all(_.map(routesByLimitOrder, route=>{
+    const routesWithQuotesByLimitOrder = await Promise.all(
+      _.map(routesByLimitOrder, route => {
         return this.getQuoteForLimitOrder(amounts, route, tradeType);
-    }));
+      })
+    );
 
     let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {
@@ -66,17 +78,23 @@ export class QuoteProvider {
       );
     }
 
-    const routesWithQuotesByProtocol: RouteWithQuotes[] = dexQuotes.map((dexQuote, i) => {
-      const amountQuote = dexQuote.map((quote, j) => {
-        return { amount: amounts[j], quote: quote.output };
-      });
-      return [routesByProtocol[i], amountQuote];
-    });
+    const routesWithQuotesByProtocol: RouteWithQuotes[] = dexQuotes.map(
+      (dexQuote, i) => {
+        const amountQuote = dexQuote.map((quote, j) => {
+          return { amount: amounts[j], quote: quote.output };
+        });
+        return [routesByProtocol[i], amountQuote];
+      }
+    );
 
     return [...routesWithQuotesByProtocol, ...routesWithQuotesByLimitOrder];
   }
 
-  private async getQuoteForLimitOrder(tokenAmounts: TokenAmount[], routeByLimitOrder: Route, tradeType: TradeType):Promise<RouteWithQuotes> {
+  private async getQuoteForLimitOrder(
+    tokenAmounts: TokenAmount[],
+    routeByLimitOrder: Route,
+    tradeType: TradeType
+  ): Promise<RouteWithQuotes> {
     const baseToken = routeByLimitOrder.path[0];
     const quoteToken = routeByLimitOrder.path[1];
     const takerTokenAddress =
@@ -101,8 +119,7 @@ export class QuoteProvider {
       quoteFn(orders)
     );
 
-
-    const orderwithfillableAmounts =  _.map(orders, (order, i) => {
+    const orderwithfillableAmounts = _.map(orders, (order, i) => {
       // use BigNumber from bignumber.js for 0x orderbook
       const orderFillableAmount = new BigNumber(
         orderFillableAmounts[i].toString()
@@ -117,7 +134,10 @@ export class QuoteProvider {
       const fillableMakerAssetAmount =
         tradeType == TradeType.EXACT_OUTPUT
           ? orderFillableAmount
-          : orderCalculationUtils.getMakerFillAmount(order, orderFillableAmount);
+          : orderCalculationUtils.getMakerFillAmount(
+              order,
+              orderFillableAmount
+            );
       // fee for taker only
       const fillableTakerFeeAmount = orderCalculationUtils.getTakerFeeAmount(
         order,
@@ -132,45 +152,68 @@ export class QuoteProvider {
       };
     });
 
-    const descendingForBuy = tradeType!==TradeType.EXACT_INPUT;
+    const descendingForBuy = tradeType !== TradeType.EXACT_INPUT;
     const sortedOrders = sortOrders(orderwithfillableAmounts, descendingForBuy);
 
-      // including taker fee
-    const fillableTakerAmounts = _.map(sortedOrders, o=>{
-              return o.fillableTakerAssetAmount.plus(o.fillableTakerFeeAmount);
-          });
-      // no including maker fee
-    const fillableMakerAmounts = _.map(sortedOrders, o=>{
-              return o.fillableMakerAssetAmount;
-          });
-    const input: BigNumber[] = tradeType==TradeType.EXACT_INPUT? fillableTakerAmounts: fillableMakerAmounts;
-    const output: BigNumber[] = tradeType==TradeType.EXACT_INPUT? fillableMakerAmounts: fillableTakerAmounts;
+    // including taker fee
+    const fillableTakerAmounts = _.map(sortedOrders, o => {
+      return o.fillableTakerAssetAmount.plus(o.fillableTakerFeeAmount);
+    });
+    // no including maker fee
+    const fillableMakerAmounts = _.map(sortedOrders, o => {
+      return o.fillableMakerAssetAmount;
+    });
+    const input: BigNumber[] =
+      tradeType == TradeType.EXACT_INPUT
+        ? fillableTakerAmounts
+        : fillableMakerAmounts;
+    const output: BigNumber[] =
+      tradeType == TradeType.EXACT_INPUT
+        ? fillableMakerAmounts
+        : fillableTakerAmounts;
 
     // including 0
-      const inputCumsum: BigNumber[] = _.reduce(input, (acc: BigNumber[], cur)=>{
-          acc.push(cur.plus(acc[acc.length-1]));
-          return acc;
-      }, [new BigNumber(0)]);
+    const inputCumsum: BigNumber[] = _.reduce(
+      input,
+      (acc: BigNumber[], cur) => {
+        acc.push(cur.plus(acc[acc.length - 1]));
+        return acc;
+      },
+      [new BigNumber(0)]
+    );
 
-    const outputCumsum: BigNumber[] = _.reduce(output, (acc: BigNumber[], cur)=>{
-          acc.push(cur.plus(acc[acc.length-1]));
-          return acc;
-      }, [new BigNumber(0)]);
+    const outputCumsum: BigNumber[] = _.reduce(
+      output,
+      (acc: BigNumber[], cur) => {
+        acc.push(cur.plus(acc[acc.length - 1]));
+        return acc;
+      },
+      [new BigNumber(0)]
+    );
 
-      const amounts = _.map(tokenAmounts, tokenAmount=>new BigNumber(tokenAmount.amount.toString()));
-      const amountsQuote = _.map(amounts, (amount, i)=>{
-          let j;
-          let quote = new BigNumber(outputCumsum[outputCumsum.length-1]);
-          for(j=0;j<inputCumsum.length;++j){
-              if(inputCumsum[j].gt(amount)){
-                  const remainingTakerAmount = amount.minus(inputCumsum[j-1]);
-                  const remainingMakerAmount = orderCalculationUtils.getMakerFillAmount(sortedOrders[j], remainingTakerAmount);
-                  quote = outputCumsum[j-1].plus(remainingMakerAmount);
-                  break;
-                }
-          }
-          return {amount: tokenAmounts[i], quote: EtherBigNumber.from(quote.toString())};
-      });
-      return [routeByLimitOrder, amountsQuote];
+    const amounts = _.map(
+      tokenAmounts,
+      tokenAmount => new BigNumber(tokenAmount.amount.toString())
+    );
+    const amountsQuote = _.map(amounts, (amount, i) => {
+      let j;
+      let quote = new BigNumber(outputCumsum[outputCumsum.length - 1]);
+      for (j = 0; j < inputCumsum.length; ++j) {
+        if (inputCumsum[j].gt(amount)) {
+          const remainingTakerAmount = amount.minus(inputCumsum[j - 1]);
+          const remainingMakerAmount = orderCalculationUtils.getMakerFillAmount(
+            sortedOrders[j],
+            remainingTakerAmount
+          );
+          quote = outputCumsum[j - 1].plus(remainingMakerAmount);
+          break;
+        }
+      }
+      return {
+        amount: tokenAmounts[i],
+        quote: EtherBigNumber.from(quote.toString()),
+      };
+    });
+    return [routeByLimitOrder, amountsQuote];
   }
 }

@@ -157,8 +157,7 @@ class TestSuite {
       quoteFn(orders)
     );
 
-
-    const orderwithfillableAmounts =  _.map(orders, (order, i) => {
+    const orderwithfillableAmounts = _.map(orders, (order, i) => {
       // use BigNumber from bignumber.js for 0x orderbook
       const orderFillableAmount = new BigNumber(
         orderFillableAmounts[i].toString()
@@ -173,7 +172,10 @@ class TestSuite {
       const fillableMakerAssetAmount =
         tradeType == TradeType.EXACT_OUTPUT
           ? orderFillableAmount
-          : orderCalculationUtils.getMakerFillAmount(order, orderFillableAmount);
+          : orderCalculationUtils.getMakerFillAmount(
+              order,
+              orderFillableAmount
+            );
       // fee for taker only
       const fillableTakerFeeAmount = orderCalculationUtils.getTakerFeeAmount(
         order,
@@ -188,7 +190,10 @@ class TestSuite {
       };
     });
 
-    return sortOrders(orderwithfillableAmounts, tradeType===TradeType.EXACT_OUTPUT);
+    return sortOrders(
+      orderwithfillableAmounts,
+      tradeType === TradeType.EXACT_OUTPUT
+    );
   }
 }
 
@@ -210,29 +215,29 @@ async function main() {
 
   const swapRoute = await testSuite.quote({ amount, quoteToken, tradeType });
   if (!swapRoute) {
-  return;
+    return;
   }
   const dexQuotes = await testSuite.sample({ amount, quoteToken, tradeType });
   const quote0 = swapRoute.quoteAdjustedForGas.amount;
   // find the best single route path from all routes
   const quote1 = dexQuotes
-  .map(dexQuote => dexQuote[0])
-  .reduce((res, quote) => {
-  return res.output.gt(quote.output) ? res : quote;
-  }).output;
+    .map(dexQuote => dexQuote[0])
+    .reduce((res, quote) => {
+      return res.output.gt(quote.output) ? res : quote;
+    }).output;
   const diff = quote0.sub(quote1);
   logger.info(`quote for route: ${quote0.toString()}`);
   logger.info(`quote for no route: ${quote1.toString()}`);
   logger.info(
-  `saved cost: ${diff.toString()}=${
-  diff.mul(10000).div(quote1).toNumber() / 100
-  }%`
+    `saved cost: ${diff.toString()}=${
+      diff.mul(10000).div(quote1).toNumber() / 100
+    }%`
   );
 
   // const orders = await testSuite.getQuoteFromOrderbook({
-    // amount,
-    // quoteToken,
-    // tradeType,
+  // amount,
+  // quoteToken,
+  // tradeType,
   // });
   // logger.info(`${orders.length}`);
   // // logger.info(`${orders[0].fillableMakerAssetAmount.toString()}`);

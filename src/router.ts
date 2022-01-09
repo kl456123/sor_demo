@@ -9,6 +9,7 @@ import {
 } from './algorithm';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
 import { RouteWithValidQuote, Token, TokenAmount } from './entities';
+import { GasModelFactory } from './gas-model';
 import { GasPriceProvider } from './gasprice-provider';
 import { logger } from './logging';
 import { Placer } from './placer';
@@ -85,7 +86,6 @@ export class AlphaRouter implements IRouter {
     );
 
     const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
-    gasPriceWei;
 
     // get all pools first
     const tokenIn =
@@ -124,7 +124,17 @@ export class AlphaRouter implements IRouter {
       tradeType == TradeType.EXACT_INPUT
         ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
         : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
-    const routesWithQuotes = await quoteFn(amounts, routesByProtocol[0], routesByProtocol[1]);
+    const routesWithQuotes = await quoteFn(
+      amounts,
+      routesByProtocol[0],
+      routesByProtocol[1]
+    );
+    const { estimateGasCost } = await GasModelFactory.buildGasModel(
+      this.chainId,
+      gasPriceWei,
+      this.poolProvider,
+      quoteToken
+    );
 
     // postprocess of routes with quotes
     const allRoutesWithValidQuotes = [];
@@ -151,6 +161,7 @@ export class AlphaRouter implements IRouter {
           amount,
           route,
           rawQuote: quote,
+          estimateGasCost,
           percent,
           poolProvider: this.poolProvider,
           tradeType,

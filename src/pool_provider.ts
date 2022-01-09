@@ -88,9 +88,9 @@ export class PoolProvider implements IPoolProvider {
       const [token0, token1] = sortedTokenPairs[i];
       const poolAddress = sortedPoolAddresses[i]!;
       // mock reserve data
-      const zero = BigNumber.from(0);
+      const one = BigNumber.from(1);
       const pool = new Pool(
-        [new TokenAmount(token0, zero), new TokenAmount(token1, zero)],
+        [new TokenAmount(token0, one), new TokenAmount(token1, one)],
         sortedProtocols[i]
       );
 

@@ -16,7 +16,7 @@ export class Placer {
     this.usedPoolKeys = new Set();
   }
 
-  public static placeRoute(routes: Route[], sources: Protocol[]){
+  public static placeRoute(routes: Route[], sources: Protocol[]) {
     const routesByProtocol = _.flatMap(routes, route => {
       if (route.pools.length == 1) {
         return this.placeDirectRoute(route, sources);
@@ -25,12 +25,12 @@ export class Placer {
     });
 
     // add route for limit order protocol
-    const routesByLimitOrder = _.flatMap(routes, route=>{
-        if(route.pools.length!==1){
-            // only direct swap for limit order
-            return []
-        }
-        return new Route(route.pools, route.input, route.output, Protocol.ZeroX);
+    const routesByLimitOrder = _.flatMap(routes, route => {
+      if (route.pools.length !== 1) {
+        // only direct swap for limit order
+        return [];
+      }
+      return new Route(route.pools, route.input, route.output, Protocol.ZeroX);
     });
     return [routesByLimitOrder, routesByProtocol];
   }
@@ -67,7 +67,7 @@ export class Placer {
           });
         }
         case Protocol.ZeroX:
-              return []
+          return [];
         default:
           logger.warn(`Unsupported protocol: ${protocol}`);
           return [];
