@@ -36,6 +36,7 @@ export enum Protocol {
   SushiSwap = 'SushiSwap',
   Curve = 'Curve',
   Eth2Dai = 'Eth2Dai',
+  ZeroX = 'ZeroX', // limit order
 
   // BSC only
   PancakeSwapV2 = 'PancakeSwap_V2',

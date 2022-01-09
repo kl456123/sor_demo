@@ -1,10 +1,14 @@
+import { orderCalculationUtils } from '@0x/order-utils';
+import { BigNumber } from 'bignumber.js';
 import bunyan from 'bunyan';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
+import _ from 'lodash';
 
 import { TOKENS } from './base_token';
 import { Token, TokenAmount } from './entities';
 import logging from './logging';
+import { Orderbook, sortOrders } from './markets/orderbook';
 import { AlphaRouter, IRouter } from './router';
 import { DexSample, Sampler } from './sampler';
 import {
@@ -40,6 +44,7 @@ type TradeParams = {
   tradeType: TradeType;
 };
 const UNISWAP_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+const ORDERBOOK_URL = 'https://api.0x.org/sra';
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
@@ -47,6 +52,7 @@ class TestSuite {
   private readonly sampler: Sampler;
   private readonly subgraphPoolProvider: ISubgraphPoolProvider;
   public readonly uniswapRouter02: UniswapV2Router02;
+  public readonly orderbook: Orderbook;
   constructor(public readonly chainId: ChainId) {
     this.provider = ethers.providers.getDefaultProvider('mainnet');
     this.router = new AlphaRouter({
@@ -60,6 +66,13 @@ class TestSuite {
       UNISWAP_ROUTER_ADDRESS,
       this.provider
     );
+
+    // this.orderbook = Orderbook.getOrderbookForPollingProvider({
+    // httpEndpoint: 'https://api.0x.org/sra',
+    // pollingIntervalMs: 5000,
+    // });
+
+    this.orderbook = new Orderbook(ORDERBOOK_URL);
   }
 
   public async quote({
@@ -113,6 +126,70 @@ class TestSuite {
     logging.getGlobalLogger().info(deltaTime);
     logging.getGlobalLogger().info(rawPools.length);
   }
+  public async getQuoteFromOrderbook({
+    amount,
+    quoteToken,
+    tradeType,
+  }: TradeParams) {
+    const takerTokenAddress =
+      tradeType == TradeType.EXACT_INPUT
+        ? amount.token.address
+        : quoteToken.address;
+    const makerTokenAddress =
+      tradeType == TradeType.EXACT_INPUT
+        ? quoteToken.address
+        : amount.token.address;
+    // const makerAssetData =
+    // assetDataUtils.encodeERC20AssetData(makerTokenAddress);
+    // const takerAssetData =
+    // assetDataUtils.encodeERC20AssetData(takerTokenAddress);
+    const orders = await this.orderbook.getOrdersAsync(
+      makerTokenAddress,
+      takerTokenAddress
+    );
+
+    // get fillable amouts from on-chain data
+    const quoteFn =
+      tradeType == TradeType.EXACT_INPUT
+        ? this.sampler.getOrderFillableTakerAssetAmounts.bind(this.sampler)
+        : this.sampler.getOrderFillableMakerAssetAmounts.bind(this.sampler);
+    const [orderFillableAmounts] = await this.sampler.executeAsync(
+      quoteFn(orders)
+    );
+
+
+    const orderwithfillableAmounts =  _.map(orders, (order, i) => {
+      // use BigNumber from bignumber.js for 0x orderbook
+      const orderFillableAmount = new BigNumber(
+        orderFillableAmounts[i].toString()
+      );
+      const fillableTakerAssetAmount =
+        tradeType == TradeType.EXACT_INPUT
+          ? orderFillableAmount
+          : orderCalculationUtils.getTakerFillAmount(
+              order,
+              orderFillableAmount
+            );
+      const fillableMakerAssetAmount =
+        tradeType == TradeType.EXACT_OUTPUT
+          ? orderFillableAmount
+          : orderCalculationUtils.getMakerFillAmount(order, orderFillableAmount);
+      // fee for taker only
+      const fillableTakerFeeAmount = orderCalculationUtils.getTakerFeeAmount(
+        order,
+        fillableTakerAssetAmount
+      );
+
+      return {
+        ...order,
+        fillableMakerAssetAmount,
+        fillableTakerAssetAmount,
+        fillableTakerFeeAmount,
+      };
+    });
+
+    return sortOrders(orderwithfillableAmounts, tradeType===TradeType.EXACT_OUTPUT);
+  }
 }
 
 async function main() {
@@ -133,26 +210,33 @@ async function main() {
 
   const swapRoute = await testSuite.quote({ amount, quoteToken, tradeType });
   if (!swapRoute) {
-    return;
+  return;
   }
   const dexQuotes = await testSuite.sample({ amount, quoteToken, tradeType });
   const quote0 = swapRoute.quoteAdjustedForGas.amount;
   // find the best single route path from all routes
   const quote1 = dexQuotes
-    .map(dexQuote => dexQuote[0])
-    .reduce((res, quote) => {
-      return res.output.gt(quote.output) ? res : quote;
-    }).output;
+  .map(dexQuote => dexQuote[0])
+  .reduce((res, quote) => {
+  return res.output.gt(quote.output) ? res : quote;
+  }).output;
   const diff = quote0.sub(quote1);
   logger.info(`quote for route: ${quote0.toString()}`);
   logger.info(`quote for no route: ${quote1.toString()}`);
   logger.info(
-    `saved cost: ${diff.toString()}=${
-      diff.mul(10000).div(quote1).toNumber() / 100
-    }%`
+  `saved cost: ${diff.toString()}=${
+  diff.mul(10000).div(quote1).toNumber() / 100
+  }%`
   );
 
-  // slippage
+  // const orders = await testSuite.getQuoteFromOrderbook({
+    // amount,
+    // quoteToken,
+    // tradeType,
+  // });
+  // logger.info(`${orders.length}`);
+  // // logger.info(`${orders[0].fillableMakerAssetAmount.toString()}`);
+  // console.log(orders[0]);
 }
 
 main().catch(console.error);

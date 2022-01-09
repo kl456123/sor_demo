@@ -20,13 +20,7 @@ import {
   StaticFileSubgraphProvider,
 } from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
-import {
-  ChainId,
-  Protocol,
-  RoutingConfig,
-  SwapRoute,
-  TradeType,
-} from './types';
+import { ChainId, RoutingConfig, SwapRoute, TradeType } from './types';
 import { routeAmountsToString } from './utils';
 
 export abstract class IRouter {
@@ -63,11 +57,7 @@ export class AlphaRouter implements IRouter {
     this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
     this.poolProvider = new PoolProvider(this.chainId);
-    this.sourceFilters = new SourceFilters([
-      Protocol.Eth2Dai,
-      Protocol.UniswapV2,
-      Protocol.Curve,
-    ]);
+    this.sourceFilters = SourceFilters.all();
   }
 
   public async route(
@@ -134,7 +124,7 @@ export class AlphaRouter implements IRouter {
       tradeType == TradeType.EXACT_INPUT
         ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
         : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
-    const routesWithQuotes = await quoteFn(amounts, routesByProtocol);
+    const routesWithQuotes = await quoteFn(amounts, routesByProtocol[0], routesByProtocol[1]);
 
     // postprocess of routes with quotes
     const allRoutesWithValidQuotes = [];

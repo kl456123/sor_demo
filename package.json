@@ -10,7 +10,7 @@
         "compile-external-types": "npx typechain --target ethers-v5 --out-dir src/types/other 'src/abis/**/*.json'",
         "build": "run-p compile-v3-types compile-v2-types compile-external-types && run-p build:*",
         "build:main": "tsc -p tsconfig.json",
-        "start":"./node_modules/.bin/ts-node src/main.ts|./node_modules/.bin/bunyan -o short",
+        "start": "./node_modules/.bin/ts-node src/main.ts|./node_modules/.bin/bunyan -o short",
         "fix": "run-s fix:*",
         "fix:prettier": "prettier \"src/**/*.ts\" \"test/**/*.ts\" --write",
         "fix:lint": "eslint src test --ext .ts --fix",
@@ -23,6 +23,8 @@
         "node": ">=10"
     },
     "dependencies": {
+        "@0x/orderbook": "^2.2.7",
+        "@0x/types": "^3.3.4",
         "@bitauth/libauth": "^1.17.1",
         "@ethersproject/bignumber": "^5.1.1",
         "@mechanicalhuman/bunyan-pretty": "^3.0.3",
