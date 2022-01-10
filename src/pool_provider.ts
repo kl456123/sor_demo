@@ -149,7 +149,10 @@ export class PoolProvider implements IPoolProvider {
 
   private cachePoolsInfo(poolsInfo: PoolInfoByProtocol[]) {
     poolsInfo.forEach(poolInfo => {
-      const [token0, token1] = poolInfo.tokens;
+      // sort token address first
+      const [tokenA, tokenB] = poolInfo.tokens;
+      const [token0, token1] =
+        tokenA < tokenB ? [tokenA, tokenB] : [tokenB, tokenA];
       const cacheKey = PoolProvider.calcCacheKey(
         token0,
         token1,

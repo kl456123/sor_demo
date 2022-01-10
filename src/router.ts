@@ -47,6 +47,7 @@ export class AlphaRouter implements IRouter {
   protected tokenProvider: ITokenProvider;
   protected poolProvider: IPoolProvider;
   protected sourceFilters: SourceFilters;
+  protected gasModelFactory: GasModelFactory;
   constructor({ chainId, provider }: AlphaRouterParams) {
     this.chainId = chainId;
     // node provider
@@ -59,6 +60,7 @@ export class AlphaRouter implements IRouter {
     this.tokenProvider = new TokenProvider(this.chainId);
     this.poolProvider = new PoolProvider(this.chainId);
     this.sourceFilters = SourceFilters.all();
+    this.gasModelFactory = new GasModelFactory(this.provider);
   }
 
   public async route(
@@ -129,7 +131,7 @@ export class AlphaRouter implements IRouter {
       routesByProtocol[0],
       routesByProtocol[1]
     );
-    const { estimateGasCost } = await GasModelFactory.buildGasModel(
+    const { estimateGasCost } = await this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,
       this.poolProvider,

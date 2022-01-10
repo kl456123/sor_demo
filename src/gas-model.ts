@@ -1,4 +1,4 @@
-import { BigNumber } from 'ethers';
+import { BigNumber, providers } from 'ethers';
 
 import { WETH9 } from './base_token';
 import { PROTOCOLSTRMAP } from './constants';
@@ -6,13 +6,16 @@ import { RouteWithValidQuote, Token, TokenAmount } from './entities';
 import { logger } from './logging';
 import { IPoolProvider, PoolInfoByProtocol } from './pool_provider';
 import { ChainId, Protocol } from './types';
+import { UniswapV2Pair__factory } from './types/v2';
 
 const BASE_SWAP_COST = BigNumber.from(100000);
 
 const COST_PER_EXTRA_HOP = BigNumber.from(20000);
 
 export class GasModelFactory {
-  public static async buildGasModel(
+  constructor(protected readonly provider: providers.BaseProvider) {}
+
+  public async buildGasModel(
     chainId: ChainId,
     gasPriceWei: BigNumber,
     poolProvider: IPoolProvider,
@@ -22,24 +25,20 @@ export class GasModelFactory {
     if (token.equals(WETH9[chainId]!)) {
       return {
         estimateGasCost: (routeWithValidQuote: RouteWithValidQuote) => {
-          return GasModelFactory.estimateGas(
-            routeWithValidQuote,
-            gasPriceWei,
-            chainId
-          );
+          return this.estimateGas(routeWithValidQuote, gasPriceWei, chainId);
         },
       };
     }
 
-    const ethPool = await GasModelFactory.getEthPool(
-      chainId,
-      token,
-      poolProvider
-    );
+    const {
+      pool: ethPool,
+      token0Price,
+      token1Price,
+    } = await this.getEthPool(chainId, token, poolProvider);
 
     return {
       estimateGasCost: (routeWithValidQuote: RouteWithValidQuote) => {
-        const gasCostInEth = GasModelFactory.estimateGas(
+        const gasCostInEth = this.estimateGas(
           routeWithValidQuote,
           gasPriceWei,
           chainId
@@ -49,18 +48,16 @@ export class GasModelFactory {
         }
 
         const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
-        const ethTokenPrice = ethToken0
-          ? ethPool.tokens[1].divide(ethPool.tokens[0].amount)
-          : ethPool.tokens[0].divide(ethPool.tokens[1].amount);
-        const gasCostInTermsOfQuoteToken = ethTokenPrice.multiply(
+        const ethTokenPrice = ethToken0 ? token0Price : token1Price;
+        const gasCostInTermsOfQuoteToken = ethTokenPrice.mul(
           gasCostInEth.amount
         );
-        return gasCostInTermsOfQuoteToken;
+        return new TokenAmount(token, gasCostInTermsOfQuoteToken);
       },
     };
   }
 
-  private static async getEthPool(
+  private async getEthPool(
     chainId: ChainId,
     token: Token,
     poolProvider: IPoolProvider
@@ -87,11 +84,20 @@ export class GasModelFactory {
         `Could not find a WETH pool with ${token.symbol} to calculate gas costs`
       );
     }
-    return pool;
+
+    // get eth price from uniswapv2
+    const uniswapV2Pair = UniswapV2Pair__factory.connect(
+      poolAddress,
+      this.provider
+    );
+    const [reserve0, reserve1] = await uniswapV2Pair.getReserves();
+    const token0Price = reserve1.div(reserve0);
+    const token1Price = reserve0.div(reserve1);
+    return { pool, token0Price, token1Price };
   }
 
   // more hops, more gas usage
-  public static estimateGas(
+  public estimateGas(
     routeWithValidQuote: RouteWithValidQuote,
     gasPriceWei: BigNumber,
     chainId: ChainId
