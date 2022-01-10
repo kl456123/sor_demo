@@ -1,5 +1,6 @@
 import { assert } from '@0x/assert';
 import { schemas } from '@0x/json-schemas';
+import { assetDataUtils } from '@0x/order-utils';
 import {
   AssetPairsItem,
   AssetPairsResponse,
@@ -32,13 +33,17 @@ export class Orderbook {
   }
 
   public async getOrdersAsync(
-    makerToken: string,
-    takerToken: string
+    makerTokenAddress: string,
+    takerTokenAddress: string
   ): Promise<SignedOrder[]> {
+    const makerAssetData =
+      assetDataUtils.encodeERC20AssetData(makerTokenAddress);
+    const takerAssetData =
+      assetDataUtils.encodeERC20AssetData(takerTokenAddress);
     const requestOpts = {
       perPage: this.perPage,
-      makerToken,
-      takerToken,
+      makerAssetData,
+      takerAssetData,
     };
 
     const params = requestOpts;
@@ -117,9 +122,9 @@ export function sortOrders<T extends Order>(
     return firstOrderRate.comparedTo(secondOrderRate);
   });
   if (descendingForBuy) {
-    return copiedOrders;
-  } else {
     return copiedOrders.reverse();
+  } else {
+    return copiedOrders;
   }
 }
 

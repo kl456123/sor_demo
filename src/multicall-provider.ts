@@ -86,7 +86,7 @@ export class MulticallProvider implements IMulticallProvider {
       const { success, returnData } = aggregateResults[i];
       // check if failed
       if (!success || returnData.length <= 2) {
-        logger.debug(`Invalid result calling from ${functionName}`);
+        logger.debug(`Invalid result calling ${functionName}`);
         continue;
       }
       results.push({

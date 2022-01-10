@@ -1,4 +1,4 @@
-import { orderCalculationUtils } from '@0x/order-utils';
+import { assetDataUtils, orderCalculationUtils } from '@0x/order-utils';
 import { BigNumber } from 'bignumber.js';
 import bunyan from 'bunyan';
 import dotenv from 'dotenv';
@@ -141,13 +141,13 @@ class TestSuite {
       tradeType == TradeType.EXACT_INPUT
         ? quoteToken.address
         : amount.token.address;
-    // const makerAssetData =
-    // assetDataUtils.encodeERC20AssetData(makerTokenAddress);
-    // const takerAssetData =
-    // assetDataUtils.encodeERC20AssetData(takerTokenAddress);
+    const makerAssetData =
+      assetDataUtils.encodeERC20AssetData(makerTokenAddress);
+    const takerAssetData =
+      assetDataUtils.encodeERC20AssetData(takerTokenAddress);
     const orders = await this.orderbook.getOrdersAsync(
-      makerTokenAddress,
-      takerTokenAddress
+      makerAssetData,
+      takerAssetData
     );
 
     // get fillable amouts from on-chain data
@@ -215,7 +215,7 @@ async function main() {
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('10000000', baseToken.decimals)
+    ethers.utils.parseUnits('10000', baseToken.decimals)
   );
   logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
 

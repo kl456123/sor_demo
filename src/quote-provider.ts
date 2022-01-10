@@ -242,13 +242,22 @@ export class QuoteProvider {
       tokenAmount => new BigNumber(tokenAmount.amount.toString())
     );
     const amountsQuote = _.map(amounts, (amount, i) => {
-      let j;
       let quote = new BigNumber(outputCumsum[outputCumsum.length - 1]);
-      for (j = 0; j < inputCumsum.length; ++j) {
+      // too much to quote in orderbook
+      if (amount.gt(inputCumsum[inputCumsum.length - 1])) {
+        return {
+          amount: new TokenAmount(
+            tokenAmounts[i].token,
+            inputCumsum[inputCumsum.length - 1].toString()
+          ),
+          quote: EtherBigNumber.from(quote.toString()),
+        };
+      }
+      for (let j = 0; j < inputCumsum.length; ++j) {
         if (inputCumsum[j].gt(amount)) {
           const remainingTakerAmount = amount.minus(inputCumsum[j - 1]);
           const remainingMakerAmount = orderCalculationUtils.getMakerFillAmount(
-            sortedOrders[j],
+            sortedOrders[j - 1],
             remainingTakerAmount
           );
           quote = outputCumsum[j - 1].plus(remainingMakerAmount);
