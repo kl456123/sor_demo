@@ -33,6 +33,11 @@ export type LocalCacheEntry<T> = {
 
 export enum Protocol {
   UniswapV2 = 'Uniswap_V2',
+  // difference uniswapv3 by fee amounts
+  UniswapV3_LOWEST = 'Uniswap_V3_LOWEST',
+  UniswapV3_LOW = 'Uniswap_V3_LOW',
+  UniswapV3_MEDIUM = 'Uniswap_V3_MEDIUM',
+  UniswapV3_HIGH = 'Uniswap_V3_HIGH',
   SushiSwap = 'SushiSwap',
   Curve = 'Curve',
   Eth2Dai = 'Eth2Dai',
@@ -108,6 +113,8 @@ export type SwapRoute = {
   quote: TokenAmount;
   quoteAdjustedForGas: TokenAmount;
 };
+
+export type RoutesByProtocol = { [protocol in Protocol]?: Route[] };
 
 // common
 export enum Rounding {

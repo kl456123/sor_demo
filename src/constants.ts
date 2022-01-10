@@ -1,3 +1,5 @@
+import { FeeAmount } from '@uniswap/v3-sdk';
+
 import { Protocol, RoutingConfig } from './types';
 
 export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
@@ -24,4 +26,11 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   Uniswap_V2: Protocol.UniswapV2,
   SushiSwap: Protocol.SushiSwap,
   Eth2Dai: Protocol.Eth2Dai,
+};
+
+export const ProtocolForFeeAmount: { [protocol in Protocol]?: FeeAmount } = {
+  [Protocol.UniswapV3_LOW]: FeeAmount.LOW,
+  [Protocol.UniswapV3_LOWEST]: FeeAmount.LOWEST,
+  [Protocol.UniswapV3_MEDIUM]: FeeAmount.MEDIUM,
+  [Protocol.UniswapV3_HIGH]: FeeAmount.HIGH,
 };

@@ -126,11 +126,7 @@ export class AlphaRouter implements IRouter {
       tradeType == TradeType.EXACT_INPUT
         ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
         : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
-    const routesWithQuotes = await quoteFn(
-      amounts,
-      routesByProtocol[0],
-      routesByProtocol[1]
-    );
+    const routesWithQuotes = await quoteFn(amounts, routesByProtocol);
     const { estimateGasCost } = await this.gasModelFactory.buildGasModel(
       this.chainId,
       gasPriceWei,

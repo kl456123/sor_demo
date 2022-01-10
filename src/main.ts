@@ -23,6 +23,7 @@ import {
   TradeType,
 } from './types';
 import { UniswapV2Router02, UniswapV2Router02__factory } from './types/v2';
+import { IQuoterV2, QuoterV2__factory } from './types/v3';
 
 dotenv.config();
 
@@ -44,6 +45,7 @@ type TradeParams = {
   tradeType: TradeType;
 };
 const UNISWAP_ROUTER_ADDRESS = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+const UNISWAP_MULTICALL_ADDRESS = '0x1F98415757620B543A52E61c46B32eB19261F984';
 const ORDERBOOK_URL = 'https://api.0x.org/sra';
 
 class TestSuite {
@@ -53,6 +55,7 @@ class TestSuite {
   private readonly subgraphPoolProvider: ISubgraphPoolProvider;
   public readonly uniswapRouter02: UniswapV2Router02;
   public readonly orderbook: Orderbook;
+  public readonly quoterv2: IQuoterV2;
   constructor(public readonly chainId: ChainId) {
     this.provider = ethers.providers.getDefaultProvider('mainnet');
     this.router = new AlphaRouter({
@@ -67,12 +70,11 @@ class TestSuite {
       this.provider
     );
 
-    // this.orderbook = Orderbook.getOrderbookForPollingProvider({
-    // httpEndpoint: 'https://api.0x.org/sra',
-    // pollingIntervalMs: 5000,
-    // });
-
     this.orderbook = new Orderbook(ORDERBOOK_URL);
+    this.quoterv2 = QuoterV2__factory.connect(
+      UNISWAP_MULTICALL_ADDRESS,
+      this.provider
+    );
   }
 
   public async quote({
@@ -194,6 +196,10 @@ class TestSuite {
       orderwithfillableAmounts,
       tradeType === TradeType.EXACT_OUTPUT
     );
+  }
+
+  public async getQuotesForUniswapV3() {
+    this.quoterv2.callStatic.quoteExactInput;
   }
 }
 

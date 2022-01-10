@@ -3,7 +3,7 @@ import _ from 'lodash';
 import { Route } from './entities';
 import { logger } from './logging';
 import { getCurveInfosForTokens } from './markets/curve';
-import { Protocol } from './types';
+import { Protocol, RoutesByProtocol } from './types';
 
 export const placeRoute = () => {
   return '';
@@ -17,22 +17,22 @@ export class Placer {
   }
 
   public static placeRoute(routes: Route[], sources: Protocol[]) {
-    const routesByProtocol = _.flatMap(routes, route => {
+    const allRoutes = _.flatMap(routes, route => {
       if (route.pools.length == 1) {
         return this.placeDirectRoute(route, sources);
       }
       return this.placeMultiHopRoute(route, sources);
     });
 
-    // add route for limit order protocol
-    const routesByLimitOrder = _.flatMap(routes, route => {
-      if (route.pools.length !== 1) {
-        // only direct swap for limit order
-        return [];
+    const routesByProtocol: RoutesByProtocol = {};
+    for (const route of allRoutes) {
+      if (!(route.protocol in routesByProtocol)) {
+        routesByProtocol[route.protocol] = [];
       }
-      return new Route(route.pools, route.input, route.output, Protocol.ZeroX);
-    });
-    return [routesByLimitOrder, routesByProtocol];
+      routesByProtocol[route.protocol]!.push(route);
+    }
+
+    return routesByProtocol;
   }
 
   public static placeDirectRoute(route: Route, sources: Protocol[]): Route[] {
@@ -40,6 +40,10 @@ export class Placer {
       switch (protocol) {
         case Protocol.UniswapV2:
         case Protocol.SushiSwap:
+        case Protocol.UniswapV3_LOWEST:
+        case Protocol.UniswapV3_LOW:
+        case Protocol.UniswapV3_MEDIUM:
+        case Protocol.UniswapV3_HIGH:
           return new Route(route.pools, route.input, route.output, protocol);
         case Protocol.Eth2Dai: {
           const symbols = _.map(route.path, token => token.symbol);
@@ -66,8 +70,18 @@ export class Placer {
             );
           });
         }
-        case Protocol.ZeroX:
-          return [];
+        case Protocol.ZeroX: {
+          if (route.pools.length !== 1) {
+            // only direct swap for limit order
+            return [];
+          }
+          return new Route(
+            route.pools,
+            route.input,
+            route.output,
+            Protocol.ZeroX
+          );
+        }
         default:
           logger.warn(`Unsupported protocol: ${protocol}`);
           return [];
