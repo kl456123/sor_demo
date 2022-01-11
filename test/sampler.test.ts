@@ -58,7 +58,7 @@ describe('test quote provider', () => {
     (dexQuotes as DexSample[][]).forEach(dexQuote => {
       expect(dexQuote.length).toEqual(fillAmounts.length);
       dexQuote.forEach(quote => {
-        expect(quote.input.gt(0)).toBeTruthy;
+        expect(quote.input.gt(0)).toBeTruthy();
       });
     });
   });
@@ -78,7 +78,7 @@ describe('test quote provider', () => {
     (dexQuotes as DexSample[][]).forEach(dexQuote => {
       expect(dexQuote.length).toEqual(fillAmounts.length);
       dexQuote.forEach(quote => {
-        expect(quote.input.gt(0)).toBeTruthy;
+        expect(quote.input.gt(0)).toBeTruthy();
       });
     });
   });

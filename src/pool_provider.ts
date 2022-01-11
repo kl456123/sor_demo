@@ -79,8 +79,8 @@ export class PoolProvider implements IPoolProvider {
     );
 
     logger.info(
-      `Got pools info from on-chain blockNumber: ${
-        providerConfig ? `${providerConfig.blockNumber}` : ''
+      `Got pools info from on-chain ${
+        providerConfig ? `blockNumber: ${providerConfig.blockNumber}` : ''
       }`
     );
 
@@ -159,7 +159,16 @@ export class PoolProvider implements IPoolProvider {
         this.chainId,
         poolInfo.protocol
       );
-      this.nodecache.set(cacheKey, poolInfo.address);
+
+      const cachedAddress = this.nodecache.get<string>(cacheKey);
+      if (!cachedAddress) {
+        this.nodecache.set(cacheKey, poolInfo.address);
+      } else if (cachedAddress !== poolInfo.address) {
+        // may be bug!
+        logger.warn(
+          `want to update pool address from ${cachedAddress} to ${poolInfo.address}`
+        );
+      }
     });
   }
 }

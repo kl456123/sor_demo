@@ -41,6 +41,23 @@ const WETH_MAINNET = new Token({
   name: 'WETH',
 });
 
+// some uncommon tokens
+const MATIC_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0',
+  decimals: 18,
+  symbol: 'MATIC',
+  name: 'Matic Token',
+});
+
+const UNI_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
+  decimals: 18,
+  symbol: 'UNI',
+  name: 'Uniswap',
+});
+
 export const WETH9: { [chainId in ChainId]?: Token } = {
   [ChainId.MAINNET]: WETH_MAINNET,
 };
@@ -63,6 +80,8 @@ export const TOKENS: { [chainId in ChainId]?: { [symbol: string]: Token } } = {
     WBTC: WBTC_MAINNET,
     DAI: DAI_MAINNET,
     WETH: WETH_MAINNET,
+    MATIC: MATIC_MAINNET,
+    UNI: UNI_MAINNET,
   },
 };
 

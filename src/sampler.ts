@@ -202,7 +202,6 @@ export class SamplerOperation {
       const protocol = route.protocol;
       switch (protocol) {
         case Protocol.UniswapV2:
-        case Protocol.SushiSwap:
           return this.getUniswapV2SellQuotes(route.path, amounts, protocol);
         case Protocol.Eth2Dai:
           return this.getEth2DaiSellQuotes(route.path, amounts, protocol);

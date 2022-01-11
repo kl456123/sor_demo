@@ -39,7 +39,6 @@ export class Placer {
     return _.flatMap(sources, protocol => {
       switch (protocol) {
         case Protocol.UniswapV2:
-        case Protocol.SushiSwap:
         case Protocol.UniswapV3_LOWEST:
         case Protocol.UniswapV3_LOW:
         case Protocol.UniswapV3_MEDIUM:
@@ -50,7 +49,7 @@ export class Placer {
           const cond =
             (symbols[0] === 'DAI' && symbols[1] === 'WETH') ||
             (symbols[0] === 'WETH' && symbols[1] === 'DAI');
-          if (cond) {
+          if (!cond) {
             return [];
           }
           return new Route(route.pools, route.input, route.output, protocol);
@@ -98,6 +97,10 @@ export class Placer {
     return _.flatMap(sources, protocol => {
       switch (protocol) {
         case Protocol.UniswapV2:
+        case Protocol.UniswapV3_LOWEST:
+        case Protocol.UniswapV3_LOW:
+        case Protocol.UniswapV3_MEDIUM:
+        case Protocol.UniswapV3_HIGH:
           return new Route(route.pools, route.input, route.output, protocol);
         default:
           return [];

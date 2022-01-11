@@ -118,7 +118,10 @@ class TokenAmount {
 class Pool {
   public readonly tokens: [TokenAmount, TokenAmount];
   public readonly protocol: Protocol;
-  constructor(tokens: [TokenAmount, TokenAmount], protocol: Protocol) {
+  constructor(
+    tokens: [TokenAmount, TokenAmount],
+    protocol: Protocol = Protocol.Unknow
+  ) {
     this.tokens = tokens;
     this.protocol = protocol;
   }

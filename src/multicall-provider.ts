@@ -35,7 +35,8 @@ const contractAddressByChain: { [chain in ChainId]?: string } = {
 };
 
 type Result<TReturn> = {
-  result: TReturn;
+  success: boolean;
+  result: TReturn | string;
 };
 
 export class MulticallProvider implements IMulticallProvider {
@@ -49,7 +50,7 @@ export class MulticallProvider implements IMulticallProvider {
       contractAddressByChain[this.chainId]!,
       this.provider
     );
-    this.gasLimitPerCall = 1_000_000;
+    this.gasLimitPerCall = 10_000_000;
   }
 
   public async call<TFunctionParams extends any[] | undefined, TReturn = any>(
@@ -86,10 +87,16 @@ export class MulticallProvider implements IMulticallProvider {
       const { success, returnData } = aggregateResults[i];
       // check if failed
       if (!success || returnData.length <= 2) {
+        // logger;
         logger.debug(`Invalid result calling ${functionName}`);
+        results.push({
+          success: false,
+          result: returnData,
+        });
         continue;
       }
       results.push({
+        success: true,
         result: contractInterface.decodeFunctionResult(
           functionName,
           returnData

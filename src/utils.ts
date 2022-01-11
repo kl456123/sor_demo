@@ -23,14 +23,11 @@ export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]) => {
     new TokenAmount(routeAmounts[0].amount.token, 0)
   );
 
-  const routeStrings = _.map(
-    routeAmounts,
-    ({ route, amount, quoteAdjustedForGas }) => {
-      return `${amount.amount.toString()} = ${routeToString(
-        route
-      )} = ${quoteAdjustedForGas.amount.toString()}`;
-    }
-  );
+  const routeStrings = _.map(routeAmounts, ({ route, amount, quote }) => {
+    return `${amount.amount.toString()} = ${routeToString(
+      route
+    )} = ${quote.amount.toString()}`;
+  });
   return `total to swap: ${total.amount.toString()}, splited path:\n ${_.join(
     routeStrings,
     '\n'

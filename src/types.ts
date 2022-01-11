@@ -104,7 +104,7 @@ export type RoutingConfig = {
 };
 
 // sample queries on single route for many quote amounts
-export type AmountQuote = { amount: TokenAmount; quote: BigNumber };
+export type AmountQuote = { amount: TokenAmount; quote?: BigNumber };
 export type RouteWithQuotes = [Route, AmountQuote[]];
 
 export type SwapRoute = {

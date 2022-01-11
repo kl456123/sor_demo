@@ -10,7 +10,10 @@ import {
 import { DEFAULT_ROUTER_CONFIG } from './constants';
 import { RouteWithValidQuote, Token, TokenAmount } from './entities';
 import { GasModelFactory } from './gas-model';
-import { GasPriceProvider } from './gasprice-provider';
+import {
+  ETHGasStationGasPriceProvider,
+  IGasPriceProvider,
+} from './gasprice-provider';
 import { logger } from './logging';
 import { Placer } from './placer';
 import { IPoolProvider, PoolProvider } from './pool_provider';
@@ -21,7 +24,13 @@ import {
   StaticFileSubgraphProvider,
 } from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
-import { ChainId, RoutingConfig, SwapRoute, TradeType } from './types';
+import {
+  ChainId,
+  Protocol,
+  RoutingConfig,
+  SwapRoute,
+  TradeType,
+} from './types';
 import { routeAmountsToString } from './utils';
 
 export abstract class IRouter {
@@ -38,11 +47,13 @@ export type AlphaRouterParams = {
   provider: providers.BaseProvider;
 };
 
+const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
+
 export class AlphaRouter implements IRouter {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected quoteProvider: QuoteProvider;
-  protected gasPriceProvider: GasPriceProvider;
+  protected gasPriceProvider: IGasPriceProvider;
   protected subgraphPoolProvider: ISubgraphPoolProvider;
   protected tokenProvider: ITokenProvider;
   protected poolProvider: IPoolProvider;
@@ -55,11 +66,13 @@ export class AlphaRouter implements IRouter {
 
     // data provider
     this.quoteProvider = new QuoteProvider(chainId, provider);
-    this.gasPriceProvider = new GasPriceProvider();
+    this.gasPriceProvider = new ETHGasStationGasPriceProvider(
+      ETH_GAS_STATION_API_URL
+    );
     this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
     this.poolProvider = new PoolProvider(this.chainId);
-    this.sourceFilters = SourceFilters.all();
+    this.sourceFilters = SourceFilters.all().exclude(Protocol.Unknow);
     this.gasModelFactory = new GasModelFactory(this.provider);
   }
 
@@ -191,6 +204,7 @@ export class AlphaRouter implements IRouter {
     const { quoteAdjustedForGas, quote, routes: routeAmounts } = swapRoutes;
 
     // print swapRoute
+    logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
     logger.info(
       `Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`
     );

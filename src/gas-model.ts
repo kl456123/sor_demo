@@ -32,8 +32,8 @@ export class GasModelFactory {
 
     const {
       pool: ethPool,
-      token0Price,
-      token1Price,
+      reserve0,
+      reserve1,
     } = await this.getEthPool(chainId, token, poolProvider);
 
     return {
@@ -48,10 +48,10 @@ export class GasModelFactory {
         }
 
         const ethToken0 = ethPool.token0.address == WETH9[chainId]!.address;
-        const ethTokenPrice = ethToken0 ? token0Price : token1Price;
-        const gasCostInTermsOfQuoteToken = ethTokenPrice.mul(
-          gasCostInEth.amount
-        );
+        // const ethTokenPrice = ethToken0 ? token0Price : token1Price;
+        const gasCostInTermsOfQuoteToken = ethToken0
+          ? reserve1.mul(gasCostInEth.amount).div(reserve0)
+          : reserve0.mul(gasCostInEth.amount).div(reserve1);
         return new TokenAmount(token, gasCostInTermsOfQuoteToken);
       },
     };
@@ -91,9 +91,7 @@ export class GasModelFactory {
       this.provider
     );
     const [reserve0, reserve1] = await uniswapV2Pair.getReserves();
-    const token0Price = reserve1.div(reserve0);
-    const token1Price = reserve0.div(reserve1);
-    return { pool, token0Price, token1Price };
+    return { pool, reserve0, reserve1 };
   }
 
   // more hops, more gas usage

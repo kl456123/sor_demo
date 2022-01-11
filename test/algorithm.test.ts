@@ -52,7 +52,7 @@ describe('test sor algorithm function', () => {
       expect(pools.length).toBeGreaterThan(0);
       pools.map(pool => {
         expect(pool.tokens.length).toBeGreaterThan(0);
-        expect(pool.protocol in PROTOCOLSTRMAP).toBeTruthy;
+        expect(pool.protocol in PROTOCOLSTRMAP).toBeTruthy();
       });
     });
   });

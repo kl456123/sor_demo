@@ -34,13 +34,13 @@ describe('test AlphaRouter', () => {
     );
     expect(swapRoute).not.toBeUndefined();
     expect(swapRoute!.blockNumber).toBeGreaterThanOrEqual(0);
-    expect(swapRoute!.quote.greatThan(0)).toBeTruthy;
-    expect(swapRoute!.quoteAdjustedForGas.greatThan(0)).toBeTruthy;
+    expect(swapRoute!.quote.greatThan(0)).toBeTruthy();
+    expect(swapRoute!.quoteAdjustedForGas.greatThan(0)).toBeTruthy();
     const routeAmounts = swapRoute!.routes;
     expect(routeAmounts.length).toBeGreaterThan(0);
     routeAmounts.map(routeAmount => {
-      expect(routeAmount.amount.greatThan(0)).toBeTruthy;
-      expect(routeAmount.quote.greatThan(0)).toBeTruthy;
+      expect(routeAmount.amount.greatThan(0)).toBeTruthy();
+      expect(routeAmount.quote.greatThan(0)).toBeTruthy();
       expect(routeAmount.route.path.length).toBeGreaterThanOrEqual(2);
     });
   });

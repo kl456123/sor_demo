@@ -5,7 +5,7 @@ import { BigNumber } from 'bignumber.js';
 import { BigNumber as EtherBigNumber, providers } from 'ethers';
 import _ from 'lodash';
 
-import { ProtocolForFeeAmount } from './constants';
+import { ProtocolForFeeAmount, uniswapV3Protocols } from './constants';
 import { Pool, Route, Token, TokenAmount } from './entities';
 import { Orderbook, sortOrders } from './markets/orderbook';
 import { IMulticallProvider, MulticallProvider } from './multicall-provider';
@@ -65,12 +65,6 @@ export class QuoteProvider {
     }
 
     // handle uniswapv3 here
-    const uniswapV3Protocols = [
-      Protocol.UniswapV3_LOW,
-      Protocol.UniswapV3_HIGH,
-      Protocol.UniswapV3_LOWEST,
-      Protocol.UniswapV3_MEDIUM,
-    ];
     if (uniswapV3Protocols.some(p => p in routesByProtocol)) {
       const uniswapV3Routes = _.flatMap(
         uniswapV3Protocols,
@@ -136,7 +130,7 @@ export class QuoteProvider {
     return routesWithQuotes;
   }
 
-  private async getQuoteForLimitOrder(
+  public async getQuoteForLimitOrder(
     tokenAmounts: TokenAmount[],
     routeByLimitOrder: Route,
     tradeType: TradeType
@@ -272,7 +266,7 @@ export class QuoteProvider {
     return [routeByLimitOrder, amountsQuote];
   }
 
-  private async getQuotesForUniswapV3(
+  public async getQuotesForUniswapV3(
     tokenAmounts: TokenAmount[],
     routes: Route[],
     tradeType: TradeType
@@ -309,6 +303,9 @@ export class QuoteProvider {
       const route = routes[i];
       const quotes = _.map(quoteResults, (quoteResult, index: number) => {
         const tokenAmount = tokenAmounts[index];
+        if (!quoteResult.success) {
+          return { amount: tokenAmount };
+        }
         return {
           amount: tokenAmount,
           quote: quoteResult.result[0], // array
@@ -320,7 +317,7 @@ export class QuoteProvider {
   }
 }
 
-function encodeRouteToPath(
+export function encodeRouteToPath(
   route: Route,
   exactOutput: boolean,
   fee: FeeAmount

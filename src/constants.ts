@@ -26,6 +26,12 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   Uniswap_V2: Protocol.UniswapV2,
   SushiSwap: Protocol.SushiSwap,
   Eth2Dai: Protocol.Eth2Dai,
+  Uniswap_V3_LOW: Protocol.UniswapV3_LOW,
+  Uniswap_V3_HIGH: Protocol.UniswapV3_HIGH,
+  Uniswap_V3_LOWEST: Protocol.UniswapV3_LOWEST,
+  Uniswap_V3_MEDIUM: Protocol.UniswapV3_MEDIUM,
+  ZeroX: Protocol.ZeroX,
+  Curve: Protocol.Curve,
 };
 
 export const ProtocolForFeeAmount: { [protocol in Protocol]?: FeeAmount } = {
@@ -34,3 +40,10 @@ export const ProtocolForFeeAmount: { [protocol in Protocol]?: FeeAmount } = {
   [Protocol.UniswapV3_MEDIUM]: FeeAmount.MEDIUM,
   [Protocol.UniswapV3_HIGH]: FeeAmount.HIGH,
 };
+
+export const uniswapV3Protocols = [
+  Protocol.UniswapV3_LOW,
+  Protocol.UniswapV3_HIGH,
+  Protocol.UniswapV3_LOWEST,
+  Protocol.UniswapV3_MEDIUM,
+];
