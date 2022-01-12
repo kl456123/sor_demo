@@ -85,10 +85,7 @@ export class QuoteProvider {
       routesByProtocol,
       (routes, protocol) => {
         if (
-          [
-              ...uniswapV3Protocols,
-              Protocol.ZeroX
-          ].includes(protocol as Protocol)
+          [...uniswapV3Protocols, Protocol.ZeroX].includes(protocol as Protocol)
         ) {
           return [];
         }

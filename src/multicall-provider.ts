@@ -42,6 +42,7 @@ type Result<TReturn> = {
 export class MulticallProvider implements IMulticallProvider {
   private multicallContract: UniswapInterfaceMulticall;
   protected gasLimitPerCall: number;
+  protected multicallChunk: number;
   constructor(
     protected chainId: ChainId,
     protected provider: providers.BaseProvider
@@ -51,6 +52,7 @@ export class MulticallProvider implements IMulticallProvider {
       this.provider
     );
     this.gasLimitPerCall = 10_000_000;
+    this.multicallChunk = 100;
   }
 
   public async call<TFunctionParams extends any[] | undefined, TReturn = any>(
@@ -77,11 +79,26 @@ export class MulticallProvider implements IMulticallProvider {
         gasLimit: this.gasLimitPerCall,
       };
     });
+    const callsChunks = _.chunk(calls, this.multicallChunk);
+    const resultChunks = await Promise.all(
+      _.map(callsChunks, async callsChunk => {
+        const result = await this.multicallContract.callStatic.multicall(
+          callsChunk,
+          {
+            blockTag: blockNumberOverride,
+          }
+        );
+        return result;
+      })
+    );
+    // blocknumber is all the same
+    const blockNumbers = resultChunks.map(result => result.blockNumber);
+    const blockNumber = blockNumbers[0];
+    const aggregateResults = _.flatMap(
+      resultChunks,
+      result => result.returnData
+    );
 
-    const { blockNumber, returnData: aggregateResults } =
-      await this.multicallContract.callStatic.multicall(calls, {
-        blockTag: blockNumberOverride,
-      });
     const results: Result<TReturn>[] = [];
     for (let i = 0; i < aggregateResults.length; ++i) {
       const { success, returnData } = aggregateResults[i];

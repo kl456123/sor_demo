@@ -1,3 +1,4 @@
+import { BigNumber } from 'bignumber.js';
 import _ from 'lodash';
 
 import { Route, RouteWithValidQuote, TokenAmount } from './entities';
@@ -8,7 +9,7 @@ export const routeToString = (route: Route) => {
   for (let i = 0; i < route.path.length; ++i) {
     routeStr.push(`${route.path[i].symbol}`);
     if (i < route.pools.length) {
-      routeStr.push(`-->(pool: ${route.protocol})-->`);
+      routeStr.push(`-->(pool: [${route.protocol}])-->`);
     }
   }
   return routeStr.join('');
@@ -24,7 +25,11 @@ export const routeAmountsToString = (routeAmounts: RouteWithValidQuote[]) => {
   );
 
   const routeStrings = _.map(routeAmounts, ({ route, amount, quote }) => {
-    return `${amount.amount.toString()} = ${routeToString(
+    // use bignumber.js
+    const percent = new BigNumber(amount.amount.toString()).div(
+      total.amount.toString()
+    );
+    return `${percent.toFixed(2)} = ${routeToString(
       route
     )} = ${quote.amount.toString()}`;
   });
