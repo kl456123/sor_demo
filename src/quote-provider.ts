@@ -86,12 +86,9 @@ export class QuoteProvider {
       (routes, protocol) => {
         if (
           [
-            'Uniswap_V3_LOW',
-            'Uniswap_V3_HIGH',
-            'Uniswap_V3_LOWEST',
-            'Uniswap_V3_MEDIUM',
-            'ZeroX',
-          ].includes(protocol)
+              ...uniswapV3Protocols,
+              Protocol.ZeroX
+          ].includes(protocol as Protocol)
         ) {
           return [];
         }

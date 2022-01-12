@@ -95,11 +95,19 @@ describe('quote provider test', () => {
         ethers.utils.parseUnits('3', baseToken.decimals)
       ),
     ];
-    const routesQuotes = await quoteProvider.getQuoteForLimitOrder(
+    const routeQuotes = await quoteProvider.getQuoteForLimitOrder(
       tokenAmounts,
       limitOrderRoute,
       tradeType
     );
-    routesQuotes;
+
+    _.forEach(routeQuotes[1], ({ amount, quote }, index) => {
+      expect(quote).toBeDefined();
+      expect(amount.amount.eq(tokenAmounts[index].amount)).toBeTruthy();
+    });
+  });
+
+  test('quote for dex amm', async () => {
+    quoteProvider;
   });
 });
