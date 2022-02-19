@@ -7,8 +7,13 @@ import './interfaces/IMultiplexFeature.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
 import './multiplex/MultiplexTransformERC20.sol';
+import './multiplex/MultiplexQuoter.sol';
 
-contract MultiplexFeature is IMultiplexFeature, MultiplexTransformERC20 {
+contract MultiplexFeature is
+    IMultiplexFeature,
+    MultiplexTransformERC20,
+    MultiplexQuoter
+{
     using SafeMath for uint256;
 
     function _executeBatchSell(BatchSellParams memory params)
@@ -38,6 +43,8 @@ contract MultiplexFeature is IMultiplexFeature, MultiplexTransformERC20 {
                     subcall.data,
                     inputTokenAmount
                 );
+            } else if (subcall.id == MultiplexSubcall.Quoter) {
+                _batchSellQuote(state, params, subcall.data, inputTokenAmount);
             } else {
                 revert('MultiplexFeature::_executeBatchSell/INVALID_SUBCALL');
             }
@@ -95,7 +102,8 @@ contract MultiplexFeature is IMultiplexFeature, MultiplexTransformERC20 {
             .outputToken
             .balanceOf(params.recipient)
             .sub(balanceBefore);
-        boughtAmount = Math.min(balanceDelta, state.boughtAmount);
+        // boughtAmount = Math.min(balanceDelta, state.boughtAmount);
+        boughtAmount = state.boughtAmount;
 
         require(
             boughtAmount >= minBuyAmount,

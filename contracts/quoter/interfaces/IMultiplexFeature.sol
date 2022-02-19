@@ -10,7 +10,8 @@ interface IMultiplexFeature {
         Invalid,
         TransformERC20,
         BatchSell,
-        MultiHopSell
+        MultiHopSell,
+        Quoter
     }
 
     struct BatchSellParams {

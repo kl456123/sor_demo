@@ -3,20 +3,14 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import './quoters/CurveQuoter.sol';
-import './quoters/UniswapV2Quoter.sol';
-import './quoters/DODOV2Quoter.sol';
-import './quoters/BalancerV2Quoter.sol';
+import './MultiplexFeature.sol';
+import './TransformERC20Feature.sol';
+import './QuoteERC20Feature.sol';
 
-contract ERC20BridgeQuoter is
-    CurveQuoter,
-    UniswapV2Quoter,
-    DODOV2Quoter,
-    BalancerV2Quoter
-{
+contract Quoter is MultiplexFeature, TransformERC20Feature, QuoteERC20Feature {
     struct CallResults {
-        bytes data;
         bool success;
+        bytes data;
     }
 
     function batchCall(bytes[] calldata callDatas)
