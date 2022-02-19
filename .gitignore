@@ -1,4 +1,11 @@
-node_modules/
-build/
-coverage/
-src/types/
+build
+node_modules
+.env
+coverage
+coverage.json
+typechain-types
+src/types
+
+#Hardhat files
+cache
+artifacts
