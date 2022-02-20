@@ -6,6 +6,8 @@ export enum ChainId {
   MAINNET = 1,
   ROPSTEN = 3,
   RINKEBY = 4,
+  BSC = 5,
+  POLYGON=6,
 }
 
 export enum ChainName {

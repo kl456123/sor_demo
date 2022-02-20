@@ -16,14 +16,55 @@ contract BalancerV2Quoter {
         address takerToken,
         address makerToken,
         uint256 takerTokenAmount
-    ) public view returns (uint256 makerTokenAmount) {}
+    ) public returns (uint256 makerTokenAmount) {
+        IBalancerV2Vault vault = IBalancerV2Vault(poolInfo.vault);
+        IBalancerV2Vault.FundManagement memory swapFunds = _createSwapFunds();
+        IBalancerV2Vault.BatchSwapStep[] memory swapSteps = _createSwapStep(
+            poolInfo,
+            takerTokenAmount
+        );
+        IAsset[] memory swapAssets = new IAsset[](2);
+        swapAssets[0] = IAsset(takerToken);
+        swapAssets[1] = IAsset(makerToken);
+        try
+            vault.queryBatchSwap(
+                IBalancerV2Vault.SwapKind.GIVEN_IN,
+                swapSteps,
+                swapAssets,
+                swapFunds
+            )
+        returns (int256[] memory amounts) {
+            // output is negative
+            makerTokenAmount = uint256(amounts[1] * -1);
+        } catch (bytes memory) {}
+    }
 
     function quoteBuyFromBalancerV2(
         BalancerV2PoolInfo memory poolInfo,
         address takerToken,
         address makerToken,
         uint256 makerTokenAmount
-    ) public view returns (uint256 takerTokenAmount) {}
+    ) public returns (uint256 takerTokenAmount) {
+        IBalancerV2Vault vault = IBalancerV2Vault(poolInfo.vault);
+        IBalancerV2Vault.FundManagement memory swapFunds = _createSwapFunds();
+        IBalancerV2Vault.BatchSwapStep[] memory swapSteps = _createSwapStep(
+            poolInfo,
+            makerTokenAmount
+        );
+        IAsset[] memory swapAssets = new IAsset[](2);
+        swapAssets[0] = IAsset(takerToken);
+        swapAssets[1] = IAsset(makerToken);
+        try
+            vault.queryBatchSwap(
+                IBalancerV2Vault.SwapKind.GIVEN_OUT,
+                swapSteps,
+                swapAssets,
+                swapFunds
+            )
+        returns (int256[] memory amounts) {
+            makerTokenAmount = uint256(amounts[0]);
+        } catch (bytes memory) {}
+    }
 
     function _createSwapStep(BalancerV2PoolInfo memory poolInfo, uint256 amount)
         private

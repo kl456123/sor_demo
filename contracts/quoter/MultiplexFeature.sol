@@ -56,6 +56,7 @@ contract MultiplexFeature is
         returns (MultiHopSellState memory state)
     {
         state.outputTokenAmount = params.sellAmount;
+        state.from = address(0);
 
         for (
             state.hopIndex = 0;
@@ -69,6 +70,7 @@ contract MultiplexFeature is
             } else {
                 revert('MultiplexFeature::_executeBatchSell/INVALID_SUBCALL');
             }
+            state.from = state.to;
         }
     }
 
@@ -143,7 +145,8 @@ contract MultiplexFeature is
         uint256 balanceDelta = outputToken.balanceOf(params.recipient).sub(
             balanceBefore
         );
-        boughtAmount = Math.min(balanceDelta, state.outputTokenAmount);
+        // boughtAmount = Math.min(balanceDelta, state.outputTokenAmount);
+        boughtAmount = state.outputTokenAmount;
 
         require(
             boughtAmount >= minBuyAmount,
