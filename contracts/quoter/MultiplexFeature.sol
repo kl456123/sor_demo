@@ -8,6 +8,7 @@ import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
 import './multiplex/MultiplexTransformERC20.sol';
 import './multiplex/MultiplexQuoter.sol';
+import 'hardhat/console.sol';
 
 contract MultiplexFeature is
     IMultiplexFeature,
@@ -20,6 +21,7 @@ contract MultiplexFeature is
         private
         returns (BatchSellState memory state)
     {
+        console.log('params.length: ', params.calls.length);
         for (uint256 i = 0; i < params.calls.length; ++i) {
             if (state.soldAmount >= params.sellAmount) {
                 break;
@@ -48,6 +50,8 @@ contract MultiplexFeature is
             } else {
                 revert('MultiplexFeature::_executeBatchSell/INVALID_SUBCALL');
             }
+            console.log('soldAmount: ', state.soldAmount);
+            console.log('boughtAmount: ', state.boughtAmount);
         }
     }
 

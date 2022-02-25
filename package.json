@@ -13,7 +13,7 @@
         "build:contracts": "hardhat compile",
         "start": "./node_modules/.bin/ts-node src/main.ts|./node_modules/.bin/bunyan -o short",
         "fix": "run-s fix:*",
-        "fix:prettiersol": "prettier \"contracts/**/*.sol\" --write",
+        "fix:prettiersol": "prettier \"contracts/**/*.sol\" \"src/**/*.ts\" \"test/**/*.ts\" --write",
         "fix:lintts": "eslint src test --ext .ts --fix",
         "fix:lintsol": "solhint --config ./.solhint.json \"contracts/**/*.sol\" --fix",
         "version": "standard-version",

@@ -32,7 +32,8 @@ const config: HardhatUserConfig = {
         forking: {
             enabled: true,
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
-        }
+        },
+        allowUnlimitedContractSize:true
     },
     oecmainnet: {
       url: "https://exchainrpc.okex.org/",

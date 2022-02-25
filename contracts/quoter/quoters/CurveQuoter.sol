@@ -6,25 +6,29 @@ pragma experimental ABIEncoderV2;
 import '../external/interfaces/ICurve.sol';
 
 contract CurveQuoter {
-    struct CurveInfo {
+    struct QuoteFromCurveParams {
         address poolAddress;
         bytes4 sellQuoteFunctionSelector;
         bytes4 buyQuoteFunctionSelector;
+        uint256 fromTokenIdx;
+        uint256 toTokenIdx;
     }
 
     function quoteSellFromCurve(
-        CurveInfo memory curveInfo,
-        uint256 fromTokenIdx,
-        uint256 toTokenIdx,
-        uint256 takerTokenAmount
+        uint256 takerTokenAmount,
+        bytes calldata wrappedCallData
     ) public view returns (uint256 makerTokenAmount) {
-        (bool didSucceed, bytes memory resultData) = curveInfo
+        QuoteFromCurveParams memory params = abi.decode(
+            wrappedCallData,
+            (QuoteFromCurveParams)
+        );
+        (bool didSucceed, bytes memory resultData) = params
             .poolAddress
             .staticcall(
                 abi.encodeWithSelector(
-                    curveInfo.sellQuoteFunctionSelector,
-                    fromTokenIdx,
-                    toTokenIdx,
+                    params.sellQuoteFunctionSelector,
+                    params.fromTokenIdx,
+                    params.toTokenIdx,
                     takerTokenAmount
                 )
             );
@@ -37,18 +41,20 @@ contract CurveQuoter {
     }
 
     function quoteBuyFromCurve(
-        CurveInfo memory curveInfo,
-        uint256 fromTokenIdx,
-        uint256 toTokenIdx,
-        uint256 makerTokenAmount
+        uint256 makerTokenAmount,
+        bytes calldata wrappedCallData
     ) public view returns (uint256 takerTokenAmount) {
-        (bool didSucceed, bytes memory resultData) = curveInfo
+        QuoteFromCurveParams memory params = abi.decode(
+            wrappedCallData,
+            (QuoteFromCurveParams)
+        );
+        (bool didSucceed, bytes memory resultData) = params
             .poolAddress
             .staticcall(
                 abi.encodeWithSelector(
-                    curveInfo.buyQuoteFunctionSelector,
-                    fromTokenIdx,
-                    toTokenIdx,
+                    params.buyQuoteFunctionSelector,
+                    params.fromTokenIdx,
+                    params.toTokenIdx,
                     makerTokenAmount
                 )
             );

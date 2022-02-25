@@ -4,8 +4,13 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 interface IQuoteERC20Feature {
-    function _quoteERC20(bytes calldata callData)
+    struct QuoteERC20Args {
+        uint256 inputTokenAmount;
+        bytes4 quoteFunctionSelector;
+        bytes wrappedCallData;
+    }
+
+    function _quoteERC20(QuoteERC20Args calldata args)
         external
-        view
         returns (uint256 outputTokenAmount);
 }

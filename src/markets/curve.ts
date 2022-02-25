@@ -46,13 +46,13 @@ export function getCurveInfosForTokens(
   makerToken: string
 ): CurveInfo[] {
   return Object.values(MAINNET_CURVE_INFOS).filter(c =>
-    [makerToken, takerToken].every(t => c.tokens.includes(t))
+    [makerToken, takerToken].every(t => c.tokens.includes(t.toLowerCase()))
   );
 }
 
 export function getCurveInfosForPool(poolAddress: string): CurveInfo {
   const curveInfos = Object.values(MAINNET_CURVE_INFOS).filter(
-    c => c.poolAddress === poolAddress
+    c => c.poolAddress === poolAddress.toLowerCase()
   );
   invariant(curveInfos.length == 1, 'CurveInfo');
   return curveInfos[0];

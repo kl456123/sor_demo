@@ -7,7 +7,7 @@ export enum ChainId {
   ROPSTEN = 3,
   RINKEBY = 4,
   BSC = 5,
-  POLYGON=6,
+  POLYGON = 6,
 }
 
 export enum ChainName {
@@ -44,6 +44,11 @@ export enum Protocol {
   Curve = 'Curve',
   Eth2Dai = 'Eth2Dai',
   ZeroX = 'ZeroX', // limit order
+  Balancer = 'Balancer',
+  BalancerV2 = 'BalancerV2',
+  UniswapV3 = 'UniswapV3',
+  DODO = 'DODO',
+  DODOV2 = 'DODOV2',
 
   // BSC only
   PancakeSwapV2 = 'PancakeSwap_V2',

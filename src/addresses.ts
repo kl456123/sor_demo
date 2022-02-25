@@ -41,22 +41,50 @@ export const uniswapV2LikeRouterAddress = (
   }
 };
 
+export const DODOV2_FACTORIES_BY_CHAIN_ID: valueByChain<string[]> = {
+  [ChainId.MAINNET]: [
+    '0x6b4fa0bc61eddc928e0df9c7f01e407bfcd3e5ef', // Private Pool
+    '0x72d220ce168c4f361dd4dee5d826a01ad8598f6c', // Vending Machine
+    '0x6fddb76c93299d985f4d3fc7ac468f9a168577a4', // Stability Pool
+  ],
+  [ChainId.BSC]: [
+    '0xafe0a75dffb395eaabd0a7e1bbbd0b11f8609eef', // Private Pool
+    '0x790b4a80fb1094589a3c0efc8740aa9b0c1733fb', // Vending Machine
+    '0x0fb9815938ad069bf90e14fe6c596c514bede767', // Stability Pool
+  ],
+  [ChainId.POLYGON]: [
+    '0x95e887adf9eaa22cc1c6e3cb7f07adc95b4b25a8', // Private Pool
+    '0x79887f65f83bdf15bcc8736b5e5bcdb48fb8fe13', // Vending Machine
+    '0x43c49f8dd240e1545f147211ec9f917376ac1e87', // Stability Pool
+  ],
+};
 
-export const DODOV2_FACTORIES_BY_CHAIN_ID: valueByChain<string[]> =
-      {
-          [ChainId.MAINNET]: [
-              '0x6b4fa0bc61eddc928e0df9c7f01e407bfcd3e5ef', // Private Pool
-              '0x72d220ce168c4f361dd4dee5d826a01ad8598f6c', // Vending Machine
-              '0x6fddb76c93299d985f4d3fc7ac468f9a168577a4', // Stability Pool
-          ],
-          [ChainId.BSC]: [
-              '0xafe0a75dffb395eaabd0a7e1bbbd0b11f8609eef', // Private Pool
-              '0x790b4a80fb1094589a3c0efc8740aa9b0c1733fb', // Vending Machine
-              '0x0fb9815938ad069bf90e14fe6c596c514bede767', // Stability Pool
-          ],
-          [ChainId.POLYGON]: [
-              '0x95e887adf9eaa22cc1c6e3cb7f07adc95b4b25a8', // Private Pool
-              '0x79887f65f83bdf15bcc8736b5e5bcdb48fb8fe13', // Vending Machine
-              '0x43c49f8dd240e1545f147211ec9f917376ac1e87', // Stability Pool
-          ],
-      };
+export const BALANCER_V2_VAULT_ADDRESS_BY_CHAIN: valueByChain<string> = {
+  [ChainId.MAINNET]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
+  [ChainId.POLYGON]: '0xba12222222228d8ba445958a75a0704d566bf2c8',
+};
+
+export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN: valueByChain<string> = {
+  [ChainId.POLYGON]:
+    'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2',
+  [ChainId.MAINNET]:
+    'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
+};
+
+export const DODOV1_CONFIG_BY_CHAIN_ID: valueByChain<{
+  helper: string;
+  registry: string;
+}> = {
+  [ChainId.MAINNET]: {
+    helper: '0x533da777aedce766ceae696bf90f8541a4ba80eb',
+    registry: '0x3A97247DF274a17C59A3bd12735ea3FcDFb49950',
+  },
+  [ChainId.BSC]: {
+    helper: '0x0f859706aee7fcf61d5a8939e8cb9dbb6c1eda33',
+    registry: '0xca459456a45e300aa7ef447dbb60f87cccb42828',
+  },
+  [ChainId.POLYGON]: {
+    helper: '0xdfaf9584f5d229a9dbe5978523317820a8897c5a',
+    registry: '0x357c5e9cfa8b834edcef7c7aabd8f9db09119d11',
+  },
+};

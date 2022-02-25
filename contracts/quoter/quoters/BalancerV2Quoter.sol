@@ -6,26 +6,30 @@ pragma experimental ABIEncoderV2;
 import '../external/interfaces/IBalancerV2.sol';
 
 contract BalancerV2Quoter {
-    struct BalancerV2PoolInfo {
+    struct QuoteFromBalancerV2Params {
         bytes32 poolId;
         address vault;
+        address takerToken;
+        address makerToken;
     }
 
     function quoteSellFromBalancerV2(
-        BalancerV2PoolInfo memory poolInfo,
-        address takerToken,
-        address makerToken,
-        uint256 takerTokenAmount
+        uint256 takerTokenAmount,
+        bytes calldata wrappedCallData
     ) public returns (uint256 makerTokenAmount) {
-        IBalancerV2Vault vault = IBalancerV2Vault(poolInfo.vault);
+        QuoteFromBalancerV2Params memory params = abi.decode(
+            wrappedCallData,
+            (QuoteFromBalancerV2Params)
+        );
+        IBalancerV2Vault vault = IBalancerV2Vault(params.vault);
         IBalancerV2Vault.FundManagement memory swapFunds = _createSwapFunds();
         IBalancerV2Vault.BatchSwapStep[] memory swapSteps = _createSwapStep(
-            poolInfo,
+            params.poolId,
             takerTokenAmount
         );
         IAsset[] memory swapAssets = new IAsset[](2);
-        swapAssets[0] = IAsset(takerToken);
-        swapAssets[1] = IAsset(makerToken);
+        swapAssets[0] = IAsset(params.takerToken);
+        swapAssets[1] = IAsset(params.makerToken);
         try
             vault.queryBatchSwap(
                 IBalancerV2Vault.SwapKind.GIVEN_IN,
@@ -40,20 +44,22 @@ contract BalancerV2Quoter {
     }
 
     function quoteBuyFromBalancerV2(
-        BalancerV2PoolInfo memory poolInfo,
-        address takerToken,
-        address makerToken,
-        uint256 makerTokenAmount
+        uint256 makerTokenAmount,
+        bytes calldata wrappedCallData
     ) public returns (uint256 takerTokenAmount) {
-        IBalancerV2Vault vault = IBalancerV2Vault(poolInfo.vault);
+        QuoteFromBalancerV2Params memory params = abi.decode(
+            wrappedCallData,
+            (QuoteFromBalancerV2Params)
+        );
+        IBalancerV2Vault vault = IBalancerV2Vault(params.vault);
         IBalancerV2Vault.FundManagement memory swapFunds = _createSwapFunds();
         IBalancerV2Vault.BatchSwapStep[] memory swapSteps = _createSwapStep(
-            poolInfo,
+            params.poolId,
             makerTokenAmount
         );
         IAsset[] memory swapAssets = new IAsset[](2);
-        swapAssets[0] = IAsset(takerToken);
-        swapAssets[1] = IAsset(makerToken);
+        swapAssets[0] = IAsset(params.takerToken);
+        swapAssets[1] = IAsset(params.makerToken);
         try
             vault.queryBatchSwap(
                 IBalancerV2Vault.SwapKind.GIVEN_OUT,
@@ -66,7 +72,7 @@ contract BalancerV2Quoter {
         } catch (bytes memory) {}
     }
 
-    function _createSwapStep(BalancerV2PoolInfo memory poolInfo, uint256 amount)
+    function _createSwapStep(bytes32 poolId, uint256 amount)
         private
         pure
         returns (IBalancerV2Vault.BatchSwapStep[] memory)
@@ -74,7 +80,7 @@ contract BalancerV2Quoter {
         IBalancerV2Vault.BatchSwapStep[]
             memory swapSteps = new IBalancerV2Vault.BatchSwapStep[](1);
         swapSteps[0] = IBalancerV2Vault.BatchSwapStep({
-            poolId: poolInfo.poolId,
+            poolId: poolId,
             assetInIndex: 0,
             assetOutIndex: 1,
             amount: amount,

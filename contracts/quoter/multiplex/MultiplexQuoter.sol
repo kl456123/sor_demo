@@ -15,10 +15,16 @@ abstract contract MultiplexQuoter {
         IMultiplexFeature.BatchSellParams memory params,
         bytes memory wrappedCallData,
         uint256 sellAmount
-    ) internal view {
-        try
-            IQuoteERC20Feature(address(this))._quoteERC20(wrappedCallData)
-        returns (uint256 outputTokenAmount) {
+    ) internal {
+        IQuoteERC20Feature.QuoteERC20Args memory args;
+        (args.quoteFunctionSelector, args.wrappedCallData) = abi.decode(
+            wrappedCallData,
+            (bytes4, bytes)
+        );
+        args.inputTokenAmount = sellAmount;
+        try IQuoteERC20Feature(address(this))._quoteERC20(args) returns (
+            uint256 outputTokenAmount
+        ) {
             state.soldAmount = state.soldAmount.add(sellAmount);
             state.boughtAmount = state.boughtAmount.add(outputTokenAmount);
         } catch {}
