@@ -5,7 +5,7 @@ import { QuoteProvider } from '../src/quote-provider';
 import { DexSample, Sampler, SamplerRoute } from '../src/sampler';
 import { ChainId, Protocol } from '../src/types';
 
-// jest.setTimeout(10000);
+jest.setTimeout(10000);
 
 describe('test quote provider', () => {
   let quoteProvider: QuoteProvider;
@@ -59,6 +59,7 @@ describe('test quote provider', () => {
       expect(dexQuote.length).toEqual(fillAmounts.length);
       dexQuote.forEach(quote => {
         expect(quote.input.gt(0)).toBeTruthy();
+        expect(quote.output.gt(0)).toBeTruthy();
       });
     });
   });
@@ -79,6 +80,7 @@ describe('test quote provider', () => {
       expect(dexQuote.length).toEqual(fillAmounts.length);
       dexQuote.forEach(quote => {
         expect(quote.input.gt(0)).toBeTruthy();
+        expect(quote.output.gt(0)).toBeTruthy();
       });
     });
   });
