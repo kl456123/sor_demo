@@ -16,10 +16,14 @@ async function main() {
   // We get the contract to deploy
   const Quoter = await ethers.getContractFactory("Quoter");
   const quoter = await Quoter.deploy();
-
   await quoter.deployed();
-
   console.log("Quoter deployed to:", quoter.address);
+
+  const Sampler = await ethers.getContractFactory("ERC20BridgeSampler");
+  const sampler = await Sampler.deploy();
+  await sampler.deployed();
+  console.log("Sampler deployed to:", sampler.address);
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere

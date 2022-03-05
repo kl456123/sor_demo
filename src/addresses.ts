@@ -26,11 +26,11 @@ export const sushiRouterByChain: valueByChain<string> = {
   [ChainId.ROPSTEN]: '0x1b02da8cb0d097eb8d57a175b88c7d8b47997506',
 };
 
+export const NULL_ADDRESS = constants.AddressZero;
 export const uniswapV2LikeRouterAddress = (
   chainId: ChainId,
   protocol: Protocol
 ): string => {
-  const NULL_ADDRESS = constants.AddressZero;
   switch (protocol) {
     case Protocol.UniswapV2:
       return uniswapV2RouterByChain[chainId] ?? NULL_ADDRESS;

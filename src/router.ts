@@ -4,34 +4,19 @@ import _ from 'lodash';
 import {
   computeAllRoutes,
   getAmountDistribution,
-  getBestSwapRoute,
   getCandidatePools,
 } from './algorithm';
+import { getBestSwapRouteV2, SwapRouteV2 } from './best_swap_route';
+import { Composer } from './composer';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
-import { RouteWithValidQuote, Token, TokenAmount } from './entities';
-import { GasModelFactory } from './gas-model';
-import {
-  ETHGasStationGasPriceProvider,
-  IGasPriceProvider,
-} from './gasprice-provider';
+import { Token, TokenAmount } from './entities';
 import { logger } from './logging';
-import { Placer } from './placer';
-import { IPoolProvider, PoolProvider } from './pool_provider';
-import { QuoteProvider } from './quote-provider';
+import { QuoterProvider } from './quoter_provider';
+import { RawPoolProvider } from './rawpool_provider';
 import { SourceFilters } from './source_filters';
-import {
-  ISubgraphPoolProvider,
-  StaticFileSubgraphProvider,
-} from './subgraph_provider';
 import { ITokenProvider, TokenProvider } from './token_provider';
-import {
-  ChainId,
-  Protocol,
-  RoutingConfig,
-  SwapRoute,
-  TradeType,
-} from './types';
-import { routeAmountsToString } from './utils';
+import { ChainId, Protocol, RoutingConfig, TradeType } from './types';
+import { multiplexRouteQToString } from './utils';
 
 export abstract class IRouter {
   abstract route(
@@ -39,7 +24,7 @@ export abstract class IRouter {
     quoteToken: Token,
     tradeType: TradeType,
     partialRoutingConfig?: Partial<RoutingConfig>
-  ): Promise<SwapRoute | undefined>;
+  ): Promise<SwapRouteV2 | undefined>;
 }
 
 export type AlphaRouterParams = {
@@ -47,33 +32,27 @@ export type AlphaRouterParams = {
   provider: providers.BaseProvider;
 };
 
-const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
-
 export class AlphaRouter implements IRouter {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
-  protected quoteProvider: QuoteProvider;
-  protected gasPriceProvider: IGasPriceProvider;
-  protected subgraphPoolProvider: ISubgraphPoolProvider;
+  protected quoterProvider: QuoterProvider;
   protected tokenProvider: ITokenProvider;
-  protected poolProvider: IPoolProvider;
+  protected poolProvider: RawPoolProvider;
   protected sourceFilters: SourceFilters;
-  protected gasModelFactory: GasModelFactory;
   constructor({ chainId, provider }: AlphaRouterParams) {
     this.chainId = chainId;
     // node provider
     this.provider = provider;
 
     // data provider
-    this.quoteProvider = new QuoteProvider(chainId, provider);
-    this.gasPriceProvider = new ETHGasStationGasPriceProvider(
-      ETH_GAS_STATION_API_URL
-    );
-    this.subgraphPoolProvider = new StaticFileSubgraphProvider();
     this.tokenProvider = new TokenProvider(this.chainId);
-    this.poolProvider = new PoolProvider(this.chainId);
+    this.poolProvider = new RawPoolProvider(this.chainId);
+    this.quoterProvider = new QuoterProvider(
+      chainId,
+      provider,
+      this.poolProvider
+    );
     this.sourceFilters = SourceFilters.all().exclude(Protocol.Unknow);
-    this.gasModelFactory = new GasModelFactory(this.provider);
   }
 
   public async route(
@@ -81,7 +60,7 @@ export class AlphaRouter implements IRouter {
     quoteToken: Token,
     tradeType: TradeType,
     partialRoutingConfig: Partial<RoutingConfig> = {}
-  ): Promise<SwapRoute | undefined> {
+  ): Promise<SwapRouteV2 | undefined> {
     const blockNumber =
       partialRoutingConfig.blockNumber ??
       (await this.provider.getBlockNumber());
@@ -94,13 +73,17 @@ export class AlphaRouter implements IRouter {
     // log configs
     logger.info(`routing config: ${JSON.stringify(routingConfig, null, 2)}`);
 
-    const { distributionPercent } = routingConfig;
-    const [percents, amounts] = getAmountDistribution(
+    const { firstDistributionPercent, secondDistributionPercent } =
+      routingConfig;
+    const [firstPercents, _firstAmounts] = getAmountDistribution(
       amount,
-      distributionPercent
+      firstDistributionPercent
     );
 
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+    const [secondPercents, _secondAmounts] = getAmountDistribution(
+      amount,
+      secondDistributionPercent
+    );
 
     // get all pools first
     const tokenIn =
@@ -112,9 +95,8 @@ export class AlphaRouter implements IRouter {
       tokenOut,
       routingConfig,
       tradeType,
-      subgraphPoolProvider: this.subgraphPoolProvider,
+      rawPoolProvider: this.poolProvider,
       tokenProvider: this.tokenProvider,
-      poolProvider: this.poolProvider,
       chainId: this.chainId,
     });
     const pools = poolAccessor.getAllPools();
@@ -126,93 +108,39 @@ export class AlphaRouter implements IRouter {
       // handler except
       return undefined;
     }
-    // filter sources that is both supported and requested
-    const { includedSources, excludedSources } = routingConfig;
-    const requestFilters = SourceFilters.all()
-      .exclude(excludedSources)
-      .include(includedSources);
-    const quoteFilters = this.sourceFilters.merge(requestFilters);
-    const routesByProtocol = Placer.placeRoute(routes, quoteFilters.sources());
 
-    // get quotes
-    const quoteFn =
-      tradeType == TradeType.EXACT_INPUT
-        ? this.quoteProvider.getQuotesManyExactIn.bind(this.quoteProvider)
-        : this.quoteProvider.getQuotesManyExactOut.bind(this.quoteProvider);
-    const routesWithQuotes = await quoteFn(amounts, routesByProtocol);
-    const { estimateGasCost } = await this.gasModelFactory.buildGasModel(
-      this.chainId,
-      gasPriceWei,
-      this.poolProvider,
-      quoteToken
-    );
+    const composedRoutes = Composer.compose(routes);
 
-    // postprocess of routes with quotes
-    const allRoutesWithValidQuotes = [];
-    for (const routeWithQuote of routesWithQuotes) {
-      // route with many quotes for different amount percents
-      const [route, quotes] = routeWithQuote;
-
-      for (let i = 0; i < quotes.length; ++i) {
-        const amountQuote = quotes[i];
-        const percent = percents[i];
-        const { quote, amount } = amountQuote;
-        // skip if no quote
-        if (!quote || quote.lte(0)) {
-          logger.debug(
-            `Dropping a null quote ${amount.toString()} for routing path in ${
-              route.protocol
-            }.`
-          );
-          continue;
-        }
-
-        const routeWithValidQuote = new RouteWithValidQuote({
-          quoteToken,
-          amount,
-          route,
-          rawQuote: quote,
-          estimateGasCost,
-          percent,
-          poolProvider: this.poolProvider,
-          tradeType,
-        });
-
-        allRoutesWithValidQuotes.push(routeWithValidQuote);
-      }
-    }
-
-    if (allRoutesWithValidQuotes.length == 0) {
-      logger.info(`Received no valid quotes`);
-      return undefined;
-    }
-
-    // logger.debug(`${routeAmountsToString(allRoutesWithValidQuotes)}`);
-
+    const timeBefore = Date.now();
     // get best route
-    const swapRoutes = getBestSwapRoute(
+    const swapRoutes = await getBestSwapRouteV2(
       amount,
-      percents,
-      allRoutesWithValidQuotes,
+      firstPercents,
+      secondPercents,
+      composedRoutes,
       tradeType,
-      routingConfig
+      routingConfig,
+      this.quoterProvider
     );
+    const latencyMs = Date.now() - timeBefore;
+    logger.info(`latencyMs for getBestSwapRouteV2: ${latencyMs} ms`);
+
     if (!swapRoutes) {
       logger.error(`Could not find route.`);
       return undefined;
     }
-    const { quoteAdjustedForGas, quote, routes: routeAmounts } = swapRoutes;
+    const { routeWithQuote } = swapRoutes!;
 
     // print swapRoute
     logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
     logger.info(
       `Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`
     );
-    logger.info(`${routeAmountsToString(routeAmounts)}`);
+    logger.info(`${multiplexRouteQToString(routeWithQuote)}`);
     logger.info(`\tRaw Quote Exact In:`);
-    logger.info(`\t\t${quote.amount.toString()}`);
+    logger.info(`\t\t${routeWithQuote.quote.amount.toString()}`);
     logger.info(`\tGas Adjusted Quote In:`);
-    logger.info(`\t\t${quoteAdjustedForGas.amount.toString()}`);
+    logger.info(`\t\t${routeWithQuote.quoteAdjustedForGas.amount.toString()}`);
 
     return swapRoutes;
   }

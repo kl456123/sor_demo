@@ -370,8 +370,9 @@ describe('Quoter', function () {
     );
     const sellAmount = BigNumber.from(utils.parseUnits('1000', 18));
     const curveInfo = getCurveInfosForPool(curveInfos[0].poolAddress);
-    const fromTokenIdx = curveInfo.tokens.indexOf(inputToken.address);
-    const toTokenIdx = curveInfo.tokens.indexOf(outputToken.address);
+    const tokensAddress = curveInfo.tokens.map(token => token.address);
+    const fromTokenIdx = tokensAddress.indexOf(inputToken.address);
+    const toTokenIdx = tokensAddress.indexOf(outputToken.address);
     const curveInterface = ICurve__factory.createInterface();
     const params = {
       poolAddress: curveInfo.poolAddress,

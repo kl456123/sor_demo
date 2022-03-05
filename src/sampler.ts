@@ -6,10 +6,11 @@ import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 import invariant from 'tiny-invariant';
 
-import { contractAddressesByChain } from './addresses';
+import { contractAddressesByChain, BALANCER_V2_VAULT_ADDRESS_BY_CHAIN } from './addresses';
 // import { Route, TokenAmount } from './entities';
 import { logger } from './logging';
 import { getCurveInfosForPool } from './markets/curve';
+import { BalancerV2PoolInfo } from './markets/types';
 import { ChainId, Protocol } from './types';
 import { Erc20BridgeSampler, Erc20BridgeSampler__factory } from './types/other';
 
@@ -171,6 +172,34 @@ export class SamplerOperation {
     });
   }
 
+  public getBalancerV2BuyQuotes(
+    poolInfo: BalancerV2PoolInfo,
+    makerToken: string,
+    takerToken: string,
+    makerFillAmounts: BigNumber[],
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.BalancerV2,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromBalancerV2',
+      functionParams: [poolInfo, makerToken, takerToken, makerFillAmounts],
+    });
+  }
+
+  public getBalancerV2SellQuotes(
+    poolInfo: BalancerV2PoolInfo,
+    makerToken: string,
+    takerToken: string,
+    takerFillAmounts: BigNumber[],
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.BalancerV2,
+      contractInterface: Erc20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromBalancerV2',
+      functionParams: [poolInfo, makerToken, takerToken, takerFillAmounts],
+    });
+  }
+
   // some getter operations that nothing to do with trading
   public getOrderFillableMakerAssetAmounts(
     orders: SignedOrder[]
@@ -209,14 +238,19 @@ export class SamplerOperation {
           invariant(route.poolAddress, 'Curve Pool Address');
           const poolAddress = route.poolAddress;
           const curveInfo = getCurveInfosForPool(poolAddress);
-          const fromTokenIdx = curveInfo.tokens.indexOf(route.path[0]);
-          const toTokenIdx = curveInfo.tokens.indexOf(route.path[1]);
+          const tokensAddress = curveInfo.tokens.map(token => token.address);
+          const fromTokenIdx = tokensAddress.indexOf(route.path[0]);
+          const toTokenIdx = tokensAddress.indexOf(route.path[1]);
           return this.getCurveSellQuotes(
             poolAddress,
             fromTokenIdx,
             toTokenIdx,
             amounts
           );
+        }
+        case Protocol.BalancerV2:{
+            const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]!;
+            return this.getBalancerV2SellQuotes({poolId:route.poolAddress!, vault}, route.path[1], route.path[0], amounts);
         }
         default:
           throw new Error(`Unsupported sell sample protocol: ${protocol}`);
@@ -242,14 +276,19 @@ export class SamplerOperation {
           invariant(route.poolAddress, 'Curve Pool Address');
           const poolAddress = route.poolAddress;
           const curveInfo = getCurveInfosForPool(poolAddress);
-          const fromTokenIdx = curveInfo.tokens.indexOf(route.path[0]);
-          const toTokenIdx = curveInfo.tokens.indexOf(route.path[1]);
+          const tokensAddress = curveInfo.tokens.map(token => token.address);
+          const fromTokenIdx = tokensAddress.indexOf(route.path[0]);
+          const toTokenIdx = tokensAddress.indexOf(route.path[1]);
           return this.getCurveBuyQuotes(
             poolAddress,
             fromTokenIdx,
             toTokenIdx,
             amounts
           );
+        }
+        case Protocol.BalancerV2:{
+            const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]!;
+            return this.getBalancerV2BuyQuotes({poolId:route.poolAddress!, vault}, route.path[1], route.path[0], amounts);
         }
         default:
           throw new Error(`Unsupported buy sample protocol: ${protocol}`);
@@ -325,7 +364,7 @@ export type SamplerOverrides = {
   blockNumber?: number;
 };
 
-const NULL_BYTES = '0x0';
+const NULL_BYTES = '0x';
 
 export class Sampler extends SamplerOperation {
   private samplerContract: Erc20BridgeSampler;

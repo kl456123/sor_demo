@@ -3,29 +3,13 @@ import _ from 'lodash';
 import { Queue } from 'mnemonist';
 
 import { baseTokensByChain, WETH9 } from './base_token';
-import { PROTOCOLSTRMAP } from './constants';
-import {
-  Pool,
-  Route,
-  RouteWithValidQuote,
-  Token,
-  TokenAmount,
-} from './entities';
+import { RouteWithValidQuote, Token, TokenAmount } from './entities';
+import { PoolV2 as Pool, RouteV2 as Route } from './entitiesv2';
 import { logger } from './logging';
-import {
-  IPoolProvider,
-  PoolAccessor,
-  PoolInfoByProtocol,
-} from './pool_provider';
-import { ISubgraphPoolProvider } from './subgraph_provider';
+import { PoolAccessor, RawPoolProvider } from './rawpool_provider';
+import { SourceFilters } from './source_filters';
 import { ITokenProvider } from './token_provider';
-import {
-  ChainId,
-  RoutingConfig,
-  SubgraphPool,
-  SwapRoute,
-  TradeType,
-} from './types';
+import { ChainId, RawPool, RoutingConfig, SwapRoute, TradeType } from './types';
 import { routeToString } from './utils';
 
 // handle dust in the end of algorithm to make sure the sum of amounts equals to 100%
@@ -53,9 +37,9 @@ export function computeAllRoutes(
   const poolsUsed: boolean[] = Array<boolean>(pools.length).fill(false);
 
   const computeRoutes = (
-    tokenIn: Token,
     tokenOut: Token,
     currentRoute: Pool[],
+    currentTokens: Token[],
     previousTokenOut: Token
   ) => {
     // check if it succeeds
@@ -65,9 +49,10 @@ export function computeAllRoutes(
 
     if (
       currentRoute.length > 0 &&
-      currentRoute[currentRoute.length - 1].involvesToken(tokenOut)
+      currentTokens[currentTokens.length - 1].equals(tokenOut)
     ) {
-      routes.push(new Route([...currentRoute], tokenIn, tokenOut));
+      // deep copy
+      routes.push(new Route([...currentRoute], [...currentTokens]));
       return;
     }
     for (let i = 0; i < pools.length; ++i) {
@@ -80,21 +65,23 @@ export function computeAllRoutes(
       if (!curPool.involvesToken(previousTokenOut)) {
         continue;
       }
-
-      const currentTokenOut = curPool.token0.equals(previousTokenOut)
-        ? curPool.token1
-        : curPool.token0;
-
       poolsUsed[i] = true;
       currentRoute.push(curPool);
-      computeRoutes(tokenIn, tokenOut, currentRoute, currentTokenOut);
+
+      for (const currentTokenOut of curPool.tokens) {
+        if (currentTokenOut.equals(previousTokenOut)) continue;
+
+        currentTokens.push(currentTokenOut);
+        computeRoutes(tokenOut, currentRoute, currentTokens, currentTokenOut);
+        currentTokens.pop();
+      }
       // rollback
-      poolsUsed[i] = false;
       currentRoute.pop();
+      poolsUsed[i] = false;
     }
   };
 
-  computeRoutes(tokenIn, tokenOut, [], tokenIn);
+  computeRoutes(tokenOut, [], [tokenIn], tokenIn);
 
   logger.info(
     routes.map(routeToString),
@@ -108,9 +95,8 @@ export type GetCandidatePoolsParams = {
   tokenOut: Token;
   tradeType: TradeType;
   routingConfig: RoutingConfig;
-  subgraphPoolProvider: ISubgraphPoolProvider;
+  rawPoolProvider: RawPoolProvider;
   tokenProvider: ITokenProvider;
-  poolProvider: IPoolProvider;
   chainId: ChainId;
 };
 
@@ -120,9 +106,8 @@ export async function getCandidatePools({
   tokenOut,
   tradeType,
   routingConfig,
-  subgraphPoolProvider,
+  rawPoolProvider,
   tokenProvider,
-  poolProvider,
   chainId,
 }: GetCandidatePoolsParams): Promise<{ poolAccessor: PoolAccessor }> {
   const {
@@ -136,17 +121,22 @@ export async function getCandidatePools({
       topNWithBaseTokenInSet,
     },
   } = routingConfig;
+  // filter sources that is both supported and requested
+  const { includedSources, excludedSources } = routingConfig;
+  const requestFilters = SourceFilters.all()
+    .exclude(excludedSources)
+    .include(includedSources);
   // fetch pools from subgraph or ifps(static file)
-  const allPoolsRaw = await subgraphPoolProvider.getPools(tokenIn, tokenOut, {
-    blockNumber,
-  });
+  const allPoolsRaw = await rawPoolProvider.getRawPools(
+    requestFilters.sources()
+  );
 
   // sort by reserve
   const subgraphPoolsSorted = _(allPoolsRaw)
     .sortBy(tokenListPool => -tokenListPool.reserve)
     .value();
   const poolAddressesSoFar = new Set<string>();
-  const addToAddressSet = (pools: SubgraphPool[]) => {
+  const addToAddressSet = (pools: RawPool[]) => {
     _(pools)
       .map(pool => pool.id)
       .forEach(poolAddress => poolAddressesSoFar.add(poolAddress));
@@ -162,11 +152,10 @@ export async function getCandidatePools({
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
           const tokenAddress = token.address.toLowerCase();
-          return (
-            (subgraphPool.token0.id == tokenInAddress &&
-              subgraphPool.token1.id == tokenAddress) ||
-            (subgraphPool.token0.id == tokenAddress &&
-              subgraphPool.token1.id === tokenInAddress)
+          return [tokenAddress, tokenInAddress].every(a =>
+            subgraphPool.tokens.some(
+              b => b.address.toLowerCase() === a.toLowerCase()
+            )
           );
         })
         .sortBy(tokenListPool => -tokenListPool.reserve)
@@ -183,11 +172,10 @@ export async function getCandidatePools({
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
           const tokenAddress = token.address.toLowerCase();
-          return (
-            (subgraphPool.token0.id == tokenOutAddress &&
-              subgraphPool.token1.id == tokenAddress) ||
-            (subgraphPool.token0.id == tokenAddress &&
-              subgraphPool.token1.id === tokenOutAddress)
+          return [tokenAddress, tokenOutAddress].every(a =>
+            subgraphPool.tokens.some(
+              b => b.address.toLowerCase() === a.toLowerCase()
+            )
           );
         })
         .sortBy(tokenListPool => -tokenListPool.reserve)
@@ -204,7 +192,7 @@ export async function getCandidatePools({
   }
 
   // need to quote weth for gas estimation
-  let top2EthQuoteTokenPool: SubgraphPool[] = [];
+  let top2EthQuoteTokenPool: RawPool[] = [];
   const wethAddress = WETH9[chainId]?.address.toLowerCase();
   if (
     tokenOut.symbol != 'WETH' &&
@@ -214,18 +202,16 @@ export async function getCandidatePools({
     top2EthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter(subgraphPool => {
         if (tradeType == TradeType.EXACT_INPUT) {
-          return (
-            (subgraphPool.token0.id == wethAddress &&
-              subgraphPool.token1.id == tokenOutAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
-              subgraphPool.token0.id == tokenOutAddress)
+          return [wethAddress!, tokenOutAddress].every(a =>
+            subgraphPool.tokens.some(
+              b => b.address.toLowerCase() === a.toLowerCase()
+            )
           );
         } else {
-          return (
-            (subgraphPool.token0.id == wethAddress &&
-              subgraphPool.token1.id == tokenInAddress) ||
-            (subgraphPool.token1.id == wethAddress &&
-              subgraphPool.token0.id == tokenInAddress)
+          return [wethAddress!, tokenInAddress].every(a =>
+            subgraphPool.tokens.some(
+              b => b.address.toLowerCase() === a.toLowerCase()
+            )
           );
         }
       })
@@ -248,8 +234,9 @@ export async function getCandidatePools({
     .filter(subgraphPool => {
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
-        (subgraphPool.token0.id == tokenInAddress ||
-          subgraphPool.token1.id == tokenInAddress)
+        subgraphPool.tokens.some(
+          token => token.address === tokenInAddress.toLowerCase()
+        )
       );
     })
     .slice(0, topNTokenInOut)
@@ -260,8 +247,9 @@ export async function getCandidatePools({
     .filter(subgraphPool => {
       return (
         !poolAddressesSoFar.has(subgraphPool.id) &&
-        (subgraphPool.token0.id == tokenOutAddress ||
-          subgraphPool.token1.id == tokenOutAddress)
+        subgraphPool.tokens.some(
+          token => token.address === tokenOutAddress.toLowerCase()
+        )
       );
     })
     .slice(0, topNTokenInOut)
@@ -270,18 +258,19 @@ export async function getCandidatePools({
 
   // add two-hops path
   const topByTVLUsingTokenInSecondHops = _(topByTVLUsingTokenIn)
-    .map(subgraphPool => {
-      return subgraphPool.token0.id == tokenInAddress
-        ? subgraphPool.token1.id
-        : subgraphPool.token0.id;
+    .flatMap(subgraphPool => {
+      return subgraphPool.tokens
+        .filter(token => token.address !== tokenInAddress)
+        .map(token => token.address);
     })
     .flatMap((secondHopId: string) => {
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
-            (subgraphPool.token0.id == secondHopId ||
-              subgraphPool.token1.id == secondHopId)
+            subgraphPool.tokens.some(
+              token => token.address === secondHopId.toLowerCase()
+            )
           );
         })
         .slice(0, topNSecondHop)
@@ -295,18 +284,19 @@ export async function getCandidatePools({
   addToAddressSet(topByTVLUsingTokenInSecondHops);
 
   const topByTVLUsingTokenOutSecondHops = _(topByTVLUsingTokenOut)
-    .map(subgraphPool => {
-      return subgraphPool.token0.id == tokenOutAddress
-        ? subgraphPool.token1.id
-        : subgraphPool.token0.id;
+    .flatMap(subgraphPool => {
+      return subgraphPool.tokens
+        .filter(token => token.address !== tokenOutAddress)
+        .map(token => token.address);
     })
     .flatMap((secondHopId: string) => {
       return _(subgraphPoolsSorted)
         .filter(subgraphPool => {
           return (
             !poolAddressesSoFar.has(subgraphPool.id) &&
-            (subgraphPool.token0.id == secondHopId ||
-              subgraphPool.token1.id == secondHopId)
+            subgraphPool.tokens.some(
+              token => token.address === secondHopId.toLowerCase()
+            )
           );
         })
         .slice(0, topNSecondHop)
@@ -337,10 +327,7 @@ export async function getCandidatePools({
   // get tokens and their infos on-chain
   const tokenAddresses = _(subgraphPools)
     .flatMap(subgraphPool => {
-      return [
-        { address: subgraphPool.token0.id, symbol: subgraphPool.token0.symbol },
-        { address: subgraphPool.token1.id, symbol: subgraphPool.token1.symbol },
-      ];
+      return subgraphPool.tokens;
     })
     .compact()
     .uniqBy(tokenInfo => tokenInfo.address)
@@ -350,32 +337,14 @@ export async function getCandidatePools({
     blockNumber,
   });
 
-  const tokenPairsInfoRaw = _.map<
-    SubgraphPool,
-    [[Token, Token], PoolInfoByProtocol] | undefined
-  >(subgraphPools, subgraphPool => {
-    const tokenA = tokenAccessor.getTokenByAddress(subgraphPool.token0.id);
-    const tokenB = tokenAccessor.getTokenByAddress(subgraphPool.token1.id);
-    if (!tokenA || !tokenB) {
-      logger.info(
-        `Dropping candidate pool for ${subgraphPool.token0.id}/${subgraphPool.token1.id}`
-      );
-      return undefined;
-    }
-    const poolInfo = {
-      protocol: PROTOCOLSTRMAP[subgraphPool.protocol],
-      tokens: [tokenA.address, tokenB.address],
-      address: subgraphPool.id,
-    };
-    return [[tokenA, tokenB], poolInfo];
+  const tokensMap: Record<string, Token> = {};
+  _.forEach(tokenAddresses, tokenInfo => {
+    tokensMap[tokenInfo.address] = tokenAccessor.getTokenByAddress(
+      tokenInfo.address
+    )!;
   });
 
-  const tokenPairsInfo = _.compact(tokenPairsInfoRaw);
-  const tokenPairs = _.map(tokenPairsInfo, tokenPairInfo => tokenPairInfo[0]);
-  const poolsInfo = _.map(tokenPairsInfo, tokenPairInfo => tokenPairInfo[1]);
-  const poolAccessor = await poolProvider.getPool(tokenPairs, poolsInfo, {
-    blockNumber,
-  });
+  const poolAccessor = await rawPoolProvider.getPools(subgraphPools, tokensMap);
 
   return { poolAccessor };
 }
@@ -432,7 +401,7 @@ export function getBestSwapRoute(
     remainingPercent: number;
   }>();
   // init queue
-  for (let i = percents.length; i >= 0; i--) {
+  for (let i = percents.length - 1; i >= 0; i--) {
     const percent = percents[i]!;
     if (!percentToSortedQuotes[percent]) {
       continue;

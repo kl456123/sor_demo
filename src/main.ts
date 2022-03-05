@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 
 import { TOKENS } from './base_token';
+import { SwapRouteV2 } from './best_swap_route';
 import { Token, TokenAmount } from './entities';
 import logging from './logging';
 import { AlphaRouter, IRouter } from './router';
@@ -10,7 +11,7 @@ import {
   ISubgraphPoolProvider,
   SubgraphPoolProvider,
 } from './subgraph_provider';
-import { ChainId, ProviderConfig, SwapRoute, TradeType } from './types';
+import { ChainId, Protocol, ProviderConfig, TradeType } from './types';
 
 dotenv.config();
 
@@ -33,6 +34,7 @@ type TradeParams = {
 };
 const nodeUrl =
   'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
+// const nodeUrl = 'http://127.0.0.1:8545';
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
@@ -52,10 +54,16 @@ class TestSuite {
     amount,
     quoteToken,
     tradeType,
-  }: TradeParams): Promise<SwapRoute | undefined> {
+  }: TradeParams): Promise<SwapRouteV2 | undefined> {
     const swapRoute = await this.router.route(amount, quoteToken, tradeType, {
       // tx calldata is too large to send
       maxSwapsPerPath: 2,
+      includedSources: [
+        Protocol.UniswapV2,
+        // Protocol.BalancerV2,
+        Protocol.Curve,
+      ],
+      maxSplits: 4,
     });
     return swapRoute;
   }

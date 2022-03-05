@@ -80,6 +80,18 @@ export type SubgraphPool = {
   protocol: string;
 };
 
+export type RawToken = {
+  address: string;
+  symbol: string;
+};
+
+export type RawPool = {
+  protocol: string;
+  id: string;
+  tokens: RawToken[];
+  reserve: number;
+};
+
 ////////////////////////////////
 // optimized route with quotes
 
@@ -103,7 +115,8 @@ export type RoutingConfig = {
   blockNumber?: number;
   maxSplits: number;
   minSplits: number;
-  distributionPercent: number;
+  firstDistributionPercent: number;
+  secondDistributionPercent: number;
   maxSwapsPerPath: number;
   poolSelections: ProtocolPoolSelection;
   includedSources: Protocol[];

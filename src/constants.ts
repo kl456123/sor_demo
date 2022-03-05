@@ -16,7 +16,8 @@ export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   maxSwapsPerPath: 3,
   minSplits: 1,
   maxSplits: 5,
-  distributionPercent: 5,
+  firstDistributionPercent: 10,
+  secondDistributionPercent: 2,
   includedSources: [],
   excludedSources: [],
 };
@@ -32,6 +33,8 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   Uniswap_V3_MEDIUM: Protocol.UniswapV3_MEDIUM,
   ZeroX: Protocol.ZeroX,
   Curve: Protocol.Curve,
+  BalancerV2: Protocol.BalancerV2,
+  Uniswap_V3: Protocol.UniswapV3,
 };
 
 export const ProtocolForFeeAmount: { [protocol in Protocol]?: FeeAmount } = {
