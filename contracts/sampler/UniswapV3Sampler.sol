@@ -88,47 +88,6 @@ contract UniswapV3Sampler {
         }
     }
 
-    /// @dev Sample buy quotes from UniswapV3.
-    /// @param quoter UniswapV3 Quoter contract.
-    /// @param path Token route. Should be takerToken -> makerToken.
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromUniswapV3(
-        IUniswapV3Quoter quoter,
-        IERC20[] memory path,
-        uint256[] memory makerTokenAmounts,
-        uint24[] memory fees
-    ) public returns (uint256[] memory takerTokenAmounts) {
-        IERC20[] memory reversedPath = _reverseTokenPath(path);
-
-        takerTokenAmounts = new uint256[](makerTokenAmounts.length);
-
-        for (uint256 i = 0; i < makerTokenAmounts.length; ++i) {
-            // Pick the best result from all the paths.
-            bytes memory topUniswapPath;
-            uint256 topSellAmount = 0;
-            // quoter requires path to be reversed for buys.
-            bytes memory uniswapPath = _toUniswapPath(
-                reversedPath,
-                _reversePoolPath(fees)
-            );
-            try
-                quoter.quoteExactOutput{gas: QUOTE_GAS}(
-                    uniswapPath,
-                    makerTokenAmounts[i]
-                )
-            returns (uint256 sellAmount) {
-                topSellAmount = sellAmount;
-            } catch {}
-            // Break early if we can't complete the buys.
-            if (topSellAmount == 0) {
-                break;
-            }
-            takerTokenAmounts[i] = topSellAmount;
-        }
-    }
-
     function _reverseTokenPath(IERC20[] memory tokenPath)
         private
         returns (IERC20[] memory reversed)

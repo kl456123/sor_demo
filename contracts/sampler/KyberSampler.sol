@@ -86,44 +86,6 @@ contract KyberSampler is
         }
     }
 
-    /// @dev Sample buy quotes from Kyber.
-    /// @param opts KyberSamplerOpts The nth reserve
-    /// @param takerToken Address of the taker token (what to sell).
-    /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return reserveId The id of the reserve found at reserveOffset
-    /// @return hint The hint for the selected reserve
-    /// @return takerTokenAmounts Taker amounts sold at each maker token amount.
-    function sampleBuysFromKyberNetwork(
-        KyberSamplerOpts memory opts,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    )
-        public
-        view
-        returns (bytes32 reserveId, bytes memory hint, uint256[] memory takerTokenAmounts)
-    {
-        _assertValidPair(makerToken, takerToken);
-
-        reserveId = _getNextReserveId(opts, takerToken, makerToken);
-        if (reserveId == 0x0) {
-            return (reserveId, hint, takerTokenAmounts);
-        }
-        opts.hint = this.encodeKyberHint(opts, reserveId, takerToken, makerToken);
-        hint = opts.hint;
-
-        takerTokenAmounts = _sampleApproximateBuys(
-            ApproximateBuyQuoteOpts({
-                makerTokenData: abi.encode(makerToken, opts),
-                takerTokenData: abi.encode(takerToken, opts),
-                getSellQuoteCallback: _sampleSellForApproximateBuyFromKyber
-            }),
-            makerTokenAmounts
-        );
-        return (reserveId, hint, takerTokenAmounts);
-    }
-
     function encodeKyberHint(
         KyberSamplerOpts memory opts,
         bytes32 reserveId,

@@ -118,56 +118,6 @@ contract BalancerV2Sampler is SamplerUtils {
         }
     }
 
-    /// @dev Sample buy quotes from Balancer V2.
-    /// @param poolInfo Struct with pool related data
-    /// @param takerToken Address of the taker token (what to sell).
-    /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromBalancerV2(
-        BalancerV2PoolInfo memory poolInfo,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    ) public returns (uint256[] memory takerTokenAmounts) {
-        _assertValidPair(makerToken, takerToken);
-        IBalancerV2Vault vault = IBalancerV2Vault(poolInfo.vault);
-        IAsset[] memory swapAssets = new IAsset[](2);
-        swapAssets[0] = IAsset(takerToken);
-        swapAssets[1] = IAsset(makerToken);
-
-        uint256 numSamples = makerTokenAmounts.length;
-        takerTokenAmounts = new uint256[](numSamples);
-        IBalancerV2Vault.FundManagement memory swapFunds = _createSwapFunds();
-
-        for (uint256 i = 0; i < numSamples; i++) {
-            IBalancerV2Vault.BatchSwapStep[]
-                memory swapSteps = _createSwapSteps(
-                    poolInfo,
-                    makerTokenAmounts[i]
-                );
-
-            try
-                // For buys we specify the makerToken which is what taker will receive from the trade
-                vault.queryBatchSwap(
-                    IBalancerV2Vault.SwapKind.GIVEN_OUT,
-                    swapSteps,
-                    swapAssets,
-                    swapFunds
-                )
-            returns (int256[] memory amounts) {
-                int256 amountIntoPool = amounts[0];
-                if (amountIntoPool <= 0) {
-                    break;
-                }
-                takerTokenAmounts[i] = uint256(amountIntoPool);
-            } catch (bytes memory) {
-                // Swallow failures, leaving all results as zero.
-                break;
-            }
-        }
-    }
 
     function _createSwapSteps(
         BalancerV2PoolInfo memory poolInfo,

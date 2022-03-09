@@ -56,35 +56,4 @@ contract UniswapV2Sampler {
             }
         }
     }
-
-    /// @dev Sample buy quotes from UniswapV2.
-    /// @param router Router to look up tokens and amounts
-    /// @param path Token route. Should be takerToken -> makerToken.
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromUniswapV2(
-        address router,
-        address[] memory path,
-        uint256[] memory makerTokenAmounts
-    ) public view returns (uint256[] memory takerTokenAmounts) {
-        uint256 numSamples = makerTokenAmounts.length;
-        takerTokenAmounts = new uint256[](numSamples);
-        for (uint256 i = 0; i < numSamples; i++) {
-            try
-                IUniswapV2Router01(router).getAmountsIn{
-                    gas: UNISWAPV2_CALL_GAS
-                }(makerTokenAmounts[i], path)
-            returns (uint256[] memory amounts) {
-                takerTokenAmounts[i] = amounts[0];
-                // Break early if there are 0 amounts
-                if (takerTokenAmounts[i] == 0) {
-                    break;
-                }
-            } catch (bytes memory) {
-                // Swallow failures, leaving all results as zero.
-                break;
-            }
-        }
-    }
 }

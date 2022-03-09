@@ -100,54 +100,6 @@ contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
         }
     }
 
-    /// @dev Sample buy quotes from DODO.
-    /// @param registry Address of the registry to look up.
-    /// @param offset offset index for the pool in the registry.
-    /// @param takerToken Address of the taker token (what to sell).
-    /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token sell amount for each sample.
-    /// @return sellBase whether the bridge needs to sell the base token
-    /// @return pool the DODO pool address
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromDODOV2(
-        address registry,
-        uint256 offset,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bool sellBase,
-            address pool,
-            uint256[] memory takerTokenAmounts
-        )
-    {
-        _assertValidPair(makerToken, takerToken);
-        (pool, sellBase) = _getNextDODOV2Pool(
-            registry,
-            offset,
-            takerToken,
-            makerToken
-        );
-        if (pool == address(0)) {
-            return (sellBase, pool, takerTokenAmounts);
-        }
-        uint256 numSamples = makerTokenAmounts.length;
-        takerTokenAmounts = new uint256[](numSamples);
-
-        takerTokenAmounts = _sampleApproximateBuys(
-            ApproximateBuyQuoteOpts({
-                makerTokenData: abi.encode(makerToken, pool, !sellBase),
-                takerTokenData: abi.encode(takerToken, pool, sellBase),
-                getSellQuoteCallback: _sampleSellForApproximateBuyFromDODOV2
-            }),
-            makerTokenAmounts
-        );
-    }
-
     function _sampleSellForApproximateBuyFromDODOV2(
         bytes memory takerTokenData,
         bytes memory, /* makerTokenData */

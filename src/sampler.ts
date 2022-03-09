@@ -784,7 +784,7 @@ export class Sampler extends SamplerOperation {
   ) {
     super(chainId, ERC20BridgeSampler__factory.createInterface());
     let samplerAddress = contractAddressesByChain[chainId]!.quoter;
-    samplerAddress = '0x5302e909d1e93e30f05b5d6eea766363d14f9892';
+    samplerAddress = '0xa6e99a4ed7498b3cddcbb61a6a607a4925faa1b7';
     if (!samplerAddress) {
       throw new Error(
         `No address for sampler contract on chain id: ${chainId}`

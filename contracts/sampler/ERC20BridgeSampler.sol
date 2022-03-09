@@ -27,10 +27,6 @@ import './DODOSampler.sol';
 import './DODOV2Sampler.sol';
 import './UniswapV2Sampler.sol';
 import './UniswapV3Sampler.sol';
-import './MakerPSMSampler.sol';
-import './BancorSampler.sol';
-import './KyberSampler.sol';
-import './NativeOrderSampler.sol';
 
 contract ERC20BridgeSampler is
     BalancerSampler,
@@ -39,11 +35,7 @@ contract ERC20BridgeSampler is
     DODOSampler,
     DODOV2Sampler,
     UniswapV2Sampler,
-    UniswapV3Sampler,
-    MakerPSMSampler,
-    BancorSampler,
-    KyberSampler,
-    NativeOrderSampler
+    UniswapV3Sampler
 {
     struct CallResults {
         bytes data;
