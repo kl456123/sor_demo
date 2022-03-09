@@ -23,7 +23,7 @@ pragma experimental ABIEncoderV2;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 interface IUniswapV3Quoter {
-    function factory() external view returns (IUniswapV3Factory factory);
+    function factory() external view returns (IUniswapV3Factory);
 
     function quoteExactInput(bytes memory path, uint256 amountIn)
         external
@@ -58,53 +58,33 @@ contract UniswapV3Sampler {
     /// @param quoter UniswapV3 Quoter contract.
     /// @param path Token route. Should be takerToken -> makerToken
     /// @param takerTokenAmounts Taker token sell amount for each sample.
-    /// @return uniswapPaths The encoded uniswap path for each sample.
     /// @return makerTokenAmounts Maker amounts bought at each taker token
     ///         amount.
     function sampleSellsFromUniswapV3(
         IUniswapV3Quoter quoter,
         IERC20[] memory path,
-        uint256[] memory takerTokenAmounts
-    )
-        public
-        returns (
-            bytes[] memory uniswapPaths,
-            uint256[] memory makerTokenAmounts
-        )
-    {
-        IUniswapV3Pool[][] memory poolPaths = _getValidPoolPaths(
-            quoter.factory(),
-            path,
-            0
-        );
-
+        uint256[] memory takerTokenAmounts,
+        uint24[] memory fees
+    ) public returns (uint256[] memory makerTokenAmounts) {
         makerTokenAmounts = new uint256[](takerTokenAmounts.length);
-        uniswapPaths = new bytes[](takerTokenAmounts.length);
 
         for (uint256 i = 0; i < takerTokenAmounts.length; ++i) {
             // Pick the best result from all the paths.
-            bytes memory topUniswapPath;
             uint256 topBuyAmount = 0;
-            for (uint256 j = 0; j < poolPaths.length; ++j) {
-                bytes memory uniswapPath = _toUniswapPath(path, poolPaths[j]);
-                try
-                    quoter.quoteExactInput{gas: QUOTE_GAS}(
-                        uniswapPath,
-                        takerTokenAmounts[i]
-                    )
-                returns (uint256 buyAmount) {
-                    if (topBuyAmount <= buyAmount) {
-                        topBuyAmount = buyAmount;
-                        topUniswapPath = uniswapPath;
-                    }
-                } catch {}
-            }
+            bytes memory uniswapPath = _toUniswapPath(path, fees);
+            try
+                quoter.quoteExactInput{gas: QUOTE_GAS}(
+                    uniswapPath,
+                    takerTokenAmounts[i]
+                )
+            returns (uint256 buyAmount) {
+                topBuyAmount = buyAmount;
+            } catch {}
             // Break early if we can't complete the buys.
             if (topBuyAmount == 0) {
                 break;
             }
             makerTokenAmounts[i] = topBuyAmount;
-            uniswapPaths[i] = topUniswapPath;
         }
     }
 
@@ -112,136 +92,41 @@ contract UniswapV3Sampler {
     /// @param quoter UniswapV3 Quoter contract.
     /// @param path Token route. Should be takerToken -> makerToken.
     /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return uniswapPaths The encoded uniswap path for each sample.
     /// @return takerTokenAmounts Taker amounts sold at each maker token
     ///         amount.
     function sampleBuysFromUniswapV3(
         IUniswapV3Quoter quoter,
         IERC20[] memory path,
-        uint256[] memory makerTokenAmounts
-    )
-        public
-        returns (
-            bytes[] memory uniswapPaths,
-            uint256[] memory takerTokenAmounts
-        )
-    {
-        IUniswapV3Pool[][] memory poolPaths = _getValidPoolPaths(
-            quoter.factory(),
-            path,
-            0
-        );
+        uint256[] memory makerTokenAmounts,
+        uint24[] memory fees
+    ) public returns (uint256[] memory takerTokenAmounts) {
         IERC20[] memory reversedPath = _reverseTokenPath(path);
 
         takerTokenAmounts = new uint256[](makerTokenAmounts.length);
-        uniswapPaths = new bytes[](makerTokenAmounts.length);
 
         for (uint256 i = 0; i < makerTokenAmounts.length; ++i) {
             // Pick the best result from all the paths.
             bytes memory topUniswapPath;
             uint256 topSellAmount = 0;
-            for (uint256 j = 0; j < poolPaths.length; ++j) {
-                // quoter requires path to be reversed for buys.
-                bytes memory uniswapPath = _toUniswapPath(
-                    reversedPath,
-                    _reversePoolPath(poolPaths[j])
-                );
-                try
-                    quoter.quoteExactOutput{gas: QUOTE_GAS}(
-                        uniswapPath,
-                        makerTokenAmounts[i]
-                    )
-                returns (uint256 sellAmount) {
-                    if (topSellAmount == 0 || topSellAmount >= sellAmount) {
-                        topSellAmount = sellAmount;
-                        // But the output path should still be encoded for sells.
-                        topUniswapPath = _toUniswapPath(path, poolPaths[j]);
-                    }
-                } catch {}
-            }
+            // quoter requires path to be reversed for buys.
+            bytes memory uniswapPath = _toUniswapPath(
+                reversedPath,
+                _reversePoolPath(fees)
+            );
+            try
+                quoter.quoteExactOutput{gas: QUOTE_GAS}(
+                    uniswapPath,
+                    makerTokenAmounts[i]
+                )
+            returns (uint256 sellAmount) {
+                topSellAmount = sellAmount;
+            } catch {}
             // Break early if we can't complete the buys.
             if (topSellAmount == 0) {
                 break;
             }
             takerTokenAmounts[i] = topSellAmount;
-            uniswapPaths[i] = topUniswapPath;
         }
-    }
-
-    function _getValidPoolPaths(
-        IUniswapV3Factory factory,
-        IERC20[] memory tokenPath,
-        uint256 startIndex
-    ) private view returns (IUniswapV3Pool[][] memory poolPaths) {
-        require(
-            tokenPath.length - startIndex >= 2,
-            'UniswapV3Sampler/tokenPath too short'
-        );
-        uint24[3] memory validPoolFees = [
-            // The launch pool fees. Could get hairier if they add more.
-            uint24(0.0005e6),
-            uint24(0.003e6),
-            uint24(0.01e6)
-        ];
-        IUniswapV3Pool[] memory validPools = new IUniswapV3Pool[](
-            validPoolFees.length
-        );
-        uint256 numValidPools = 0;
-        {
-            IERC20 inputToken = tokenPath[startIndex];
-            IERC20 outputToken = tokenPath[startIndex + 1];
-            for (uint256 i = 0; i < validPoolFees.length; ++i) {
-                IUniswapV3Pool pool = factory.getPool(
-                    inputToken,
-                    outputToken,
-                    validPoolFees[i]
-                );
-                if (_isValidPool(pool)) {
-                    validPools[numValidPools++] = pool;
-                }
-            }
-        }
-        if (numValidPools == 0) {
-            // No valid pools for this hop.
-            return poolPaths;
-        }
-        if (startIndex + 2 == tokenPath.length) {
-            // End of path.
-            poolPaths = new IUniswapV3Pool[][](numValidPools);
-            for (uint256 i = 0; i < numValidPools; ++i) {
-                poolPaths[i] = new IUniswapV3Pool[](1);
-                poolPaths[i][0] = validPools[i];
-            }
-            return poolPaths;
-        }
-        // Get paths for subsequent hops.
-        IUniswapV3Pool[][] memory subsequentPoolPaths = _getValidPoolPaths(
-            factory,
-            tokenPath,
-            startIndex + 1
-        );
-        if (subsequentPoolPaths.length == 0) {
-            // Could not complete the path.
-            return poolPaths;
-        }
-        // Combine our pools with the next hop paths.
-        poolPaths = new IUniswapV3Pool[][](
-            numValidPools * subsequentPoolPaths.length
-        );
-        for (uint256 i = 0; i < numValidPools; ++i) {
-            for (uint256 j = 0; j < subsequentPoolPaths.length; ++j) {
-                uint256 o = i * subsequentPoolPaths.length + j;
-                // Prepend pool to the subsequent path.
-                poolPaths[o] = new IUniswapV3Pool[](
-                    1 + subsequentPoolPaths[j].length
-                );
-                poolPaths[o][0] = validPools[i];
-                for (uint256 k = 0; k < subsequentPoolPaths[j].length; ++k) {
-                    poolPaths[o][1 + k] = subsequentPoolPaths[j][k];
-                }
-            }
-        }
-        return poolPaths;
     }
 
     function _reverseTokenPath(IERC20[] memory tokenPath)
@@ -254,13 +139,13 @@ contract UniswapV3Sampler {
         }
     }
 
-    function _reversePoolPath(IUniswapV3Pool[] memory poolPath)
+    function _reversePoolPath(uint24[] memory fees)
         private
-        returns (IUniswapV3Pool[] memory reversed)
+        returns (uint24[] memory reversed)
     {
-        reversed = new IUniswapV3Pool[](poolPath.length);
-        for (uint256 i = 0; i < poolPath.length; ++i) {
-            reversed[i] = poolPath[poolPath.length - i - 1];
+        reversed = new uint24[](fees.length);
+        for (uint256 i = 0; i < fees.length; ++i) {
+            reversed[i] = fees[fees.length - i - 1];
         }
     }
 
@@ -289,24 +174,25 @@ contract UniswapV3Sampler {
         return true;
     }
 
-    function _toUniswapPath(
-        IERC20[] memory tokenPath,
-        IUniswapV3Pool[] memory poolPath
-    ) private view returns (bytes memory uniswapPath) {
+    function _toUniswapPath(IERC20[] memory tokenPath, uint24[] memory poolFees)
+        private
+        pure
+        returns (bytes memory uniswapPath)
+    {
         require(
-            tokenPath.length >= 2 && tokenPath.length == poolPath.length + 1,
+            tokenPath.length >= 2 && tokenPath.length == poolFees.length + 1,
             'UniswapV3Sampler/invalid path lengths'
         );
         // Uniswap paths are tightly packed as:
         // [token0, token0token1PairFee, token1, token1Token2PairFee, token2, ...]
-        uniswapPath = new bytes(tokenPath.length * 20 + poolPath.length * 3);
+        uniswapPath = new bytes(tokenPath.length * 20 + poolFees.length * 3);
         uint256 o;
         assembly {
             o := add(uniswapPath, 32)
         }
         for (uint256 i = 0; i < tokenPath.length; ++i) {
             if (i > 0) {
-                uint24 poolFee = poolPath[i - 1].fee();
+                uint24 poolFee = poolFees[i - 1];
                 assembly {
                     mstore(o, shl(232, poolFee))
                     o := add(o, 3)

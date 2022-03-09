@@ -114,10 +114,10 @@ export async function postprocess(
       const { quote, amount } = amountQuote;
       // skip if no quote
       if (!quote || quote.lte(0)) {
-        logger.info(
-          `Dropping a null quote ${amount.toString()} for routing path in ${
-            directSwapRoute.pool.protocol
-          }.`
+        logger.warn(
+          `Dropping a null quote ${amount.toString()} for ${
+            directSwapRoute.output.symbol
+          } in ${directSwapRoute.pool.protocol}(${directSwapRoute.pool.id}).`
         );
         continue;
       }
@@ -148,9 +148,6 @@ export async function postprocess(
     }
   }
 
-  if (allRoutesWithValidQuotes.length == 0) {
-    logger.info(`Received no valid quotes`);
-  }
   return allRoutesWithValidQuotes;
 }
 
@@ -223,7 +220,7 @@ function bfs(
   let bestQuote: TokenAmount | undefined;
 
   // init best swap with no splitted route path
-  if (percentToSortedQuotes[100][0]) {
+  if (percentToSortedQuotes[100] && percentToSortedQuotes[100][0]) {
     bestSwap = [percentToSortedQuotes[100][0]];
     bestQuote = percentToSortedQuotes[100][0].quoteAdjustedForGas;
   }
@@ -340,6 +337,7 @@ export async function getBestSwapForBatchRoute(
     quoterProvider
   );
   if (!routesWithValidQuotes.length) {
+    logger.warn(`Error when finding the best swap for batch route`);
     return undefined;
   }
 

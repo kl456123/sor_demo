@@ -55,11 +55,7 @@ export class QuoterProvider {
     const directSwapRoutes = routes as DirectSwapRoute[];
     const fillAmounts = amounts.map(amt => amt.amount);
     const samplerRoutes = directSwapRoutes.map(route => {
-      return {
-        protocol: route.pool.protocol,
-        path: [route.input.address, route.output.address],
-        poolAddress: route.pool.id,
-      };
+      return this.sampler.fillParams(route);
     });
     let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {

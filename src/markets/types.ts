@@ -1,4 +1,6 @@
+import { BytesLike } from 'ethers';
+
 export interface BalancerV2PoolInfo {
-      poolId: string;
-      vault: string;
-  }
+  poolId: BytesLike;
+  vault: string;
+}

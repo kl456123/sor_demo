@@ -1,59 +1,39 @@
 import { BigNumber, ethers, providers } from 'ethers';
 
 import { TOKENS } from '../src/base_token';
-import { QuoteProvider } from '../src/quote-provider';
-import { DexSample, Sampler, SamplerRoute } from '../src/sampler';
+import { TokenAmount } from '../src/entities';
+import { DirectSwapRoute, PoolV2 } from '../src/entitiesv2';
+import { getCurveInfosForTokens } from '../src/markets/curve';
+import { UniswapV3PoolData } from '../src/markets/uniswapv3_subgraph_provider';
+import { DexSample, Sampler } from '../src/sampler';
 import { ChainId, Protocol } from '../src/types';
 
-jest.setTimeout(10000);
+jest.setTimeout(100000);
 
 describe('test quote provider', () => {
-  let quoteProvider: QuoteProvider;
   let provider: providers.BaseProvider;
   let sampler: Sampler;
-  let chainId: ChainId;
+  const chainId = ChainId.MAINNET;
+  const tokens = TOKENS[chainId]!;
 
-  // common quotes
-  let tokens;
-  let samplerRoutes: SamplerRoute[] = [];
-  let fillAmounts: BigNumber[] = [];
   beforeAll(() => {
-    chainId = ChainId.MAINNET;
-    provider = ethers.getDefaultProvider('mainnet');
-    quoteProvider = new QuoteProvider(chainId, provider);
+    const nodeUrl = 'http://127.0.0.1:8545';
+    provider = new ethers.providers.JsonRpcProvider(nodeUrl);
     sampler = new Sampler(chainId, provider, {});
   });
 
-  beforeEach(() => {
-    tokens = TOKENS[chainId]!;
-    // USDC => WETH
-    const path = [tokens.USDC.address, tokens.WETH.address];
-    samplerRoutes = [
-      { protocol: Protocol.UniswapV2, path },
-      { protocol: Protocol.SushiSwap, path },
-    ];
-    fillAmounts = [
-      ...[
-        ethers.utils.parseUnits('2000', 6),
-        ethers.utils.parseUnits('4000', 6),
-      ],
-      ...fillAmounts,
-    ];
-  });
-
-  test('test sell quote(EXACT_INPUT)', async () => {
-    quoteProvider;
-    // const routesWithQuotes = await quoteProvider.getQuotesManyExactIn();
-  });
-
-  test('test buy quote(EXACT_OUTPUT)', async () => {
-    // const routesWithQuotes = await quoteProvider.getQuotesManyExactOut();
-  });
-
-  test('test sell sample(EXACT_INPUT)', async () => {
-    const [dexQuotes] = await sampler.executeAsync(
-      sampler.getSellQuotes(fillAmounts, samplerRoutes)
-    );
+  async function testGetQuotes(
+    directSwapRoutes: DirectSwapRoute[],
+    fillAmounts: BigNumber[],
+    isSell: boolean
+  ) {
+    const samplerRoutes = directSwapRoutes.map(route => {
+      return sampler.fillParams(route);
+    });
+    const op = isSell
+      ? sampler.getSellQuotes(fillAmounts, samplerRoutes)
+      : sampler.getBuyQuotes(fillAmounts, samplerRoutes);
+    const [dexQuotes] = await sampler.executeAsync(op);
     expect(dexQuotes.length).toEqual(samplerRoutes.length);
     (dexQuotes as DexSample[][]).forEach(dexQuote => {
       expect(dexQuote.length).toEqual(fillAmounts.length);
@@ -62,26 +42,141 @@ describe('test quote provider', () => {
         expect(quote.output.gt(0)).toBeTruthy();
       });
     });
+  }
+
+  test('test uniswapv2 like sample', async () => {
+    // USDC => WETH
+    const fillAmounts = [
+      ethers.utils.parseUnits('2000', 6),
+      ethers.utils.parseUnits('4000', 6),
+    ];
+    const directSwapRoutes: DirectSwapRoute[] = [];
+    const protocol = Protocol.UniswapV2;
+    const tokensAmount = [
+      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.WETH, 10),
+    ];
+    const poolId = '0x';
+    const pool = new PoolV2(tokensAmount, poolId, protocol);
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.WETH));
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
 
-  test('test buy sample(EXACT_OUTPUT)', async () => {
-    // modify testdata for buy samples
-    // amount for WETH token
-    fillAmounts = [
+  test('test balancerv2 sample', async () => {
+    // DAI => USDC
+    const fillAmounts = [
       ethers.utils.parseUnits('10', 18),
       ethers.utils.parseUnits('30', 18),
     ];
+    const poolId =
+      '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063';
 
-    const [dexQuotes] = await sampler.executeAsync(
-      sampler.getBuyQuotes(fillAmounts, samplerRoutes)
-    );
-    expect(dexQuotes.length).toEqual(samplerRoutes.length);
-    (dexQuotes as DexSample[][]).forEach(dexQuote => {
-      expect(dexQuote.length).toEqual(fillAmounts.length);
-      dexQuote.forEach(quote => {
-        expect(quote.input.gt(0)).toBeTruthy();
-        expect(quote.output.gt(0)).toBeTruthy();
-      });
-    });
+    const tokensAmount = [
+      new TokenAmount(tokens.DAI, 10),
+      new TokenAmount(tokens.USDC, 10),
+    ];
+    const directSwapRoutes: DirectSwapRoute[] = [];
+    const protocol = Protocol.BalancerV2;
+    const pool = new PoolV2(tokensAmount, poolId, protocol);
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.DAI, tokens.USDC));
+
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
+
+  test('test curvev1 sample', async () => {
+    const fillAmounts = [
+      ethers.utils.parseUnits('10', 6),
+      ethers.utils.parseUnits('30', 6),
+    ];
+    // USDC => USDT
+    const path = [tokens.USDC.address, tokens.USDT.address];
+    const curveInfos = getCurveInfosForTokens(path[0], path[1]);
+
+    const tokensAmount = [
+      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.USDT, 10),
+    ];
+    const protocol = Protocol.Curve;
+    const directSwapRoutes = curveInfos.map(curveInfo => {
+      const pool = new PoolV2(tokensAmount, curveInfo.poolAddress, protocol);
+      return new DirectSwapRoute(pool, tokens.USDC, tokens.USDT);
+    });
+
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
+  });
+
+  test.skip('test dodov1 sample', async () => {
+    const fillAmounts = [
+      ethers.utils.parseUnits('10', 6),
+      ethers.utils.parseUnits('30', 6),
+    ];
+    const poolAddress = '0x';
+    // USDC => USDT
+    const directSwapRoutes: DirectSwapRoute[] = [];
+    const tokensAmount = [
+      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.USDT, 10),
+    ];
+    const protocol = Protocol.DODO;
+    const pool = new PoolV2(tokensAmount, poolAddress, protocol);
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
+  });
+
+  test.skip('test dodov2 sample', async () => {
+    const fillAmounts = [
+      ethers.utils.parseUnits('10', 6),
+      ethers.utils.parseUnits('30', 6),
+    ];
+    const poolAddress = '0x';
+    // USDC => USDT
+    const directSwapRoutes: DirectSwapRoute[] = [];
+    const tokensAmount = [
+      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.USDT, 10),
+    ];
+    const protocol = Protocol.DODOV2;
+    const pool = new PoolV2(tokensAmount, poolAddress, protocol);
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
+  });
+
+  test('test uniswapv3 sample', async () => {
+    const fillAmounts = [
+      ethers.utils.parseUnits('1000', 6),
+      ethers.utils.parseUnits('3000', 6),
+    ];
+
+    // DAI => USDC
+    const tokensAmount = [
+      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.USDT, 10),
+    ];
+    const poolAddress = '0x';
+    const directSwapRoutes: DirectSwapRoute[] = [];
+    const protocol = Protocol.UniswapV3;
+    const poolData = { feeTier: 100 } as UniswapV3PoolData;
+    const pool = new PoolV2(tokensAmount, poolAddress, protocol, poolData);
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+
+    await testGetQuotes(directSwapRoutes, fillAmounts, true);
+    await testGetQuotes(directSwapRoutes, fillAmounts, false);
+  });
+    test('test kyber sample', async ()=>{
+    });
+
+    test('test bancor sample', async ()=>{
+    });
+
+    test('test balancerv1 sample', async ()=>{
+    });
+    test('test native order sample', async ()=>{
+    });
 });

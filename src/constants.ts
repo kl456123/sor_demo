@@ -33,8 +33,15 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   Uniswap_V3_MEDIUM: Protocol.UniswapV3_MEDIUM,
   ZeroX: Protocol.ZeroX,
   Curve: Protocol.Curve,
-  BalancerV2: Protocol.BalancerV2,
+  CurveV2: Protocol.CurveV2,
   Uniswap_V3: Protocol.UniswapV3,
+  BalancerV2: Protocol.BalancerV2,
+  DODOV2: Protocol.DODOV2,
+  DODO: Protocol.DODO,
+  Bancor: Protocol.Bancor,
+  Balancer: Protocol.Balancer,
+  Kyber: Protocol.Kyber,
+  MakerPsm: Protocol.MakerPSM,
 };
 
 export const ProtocolForFeeAmount: { [protocol in Protocol]?: FeeAmount } = {

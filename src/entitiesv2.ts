@@ -9,15 +9,18 @@ export class PoolV2 {
   public readonly tokens: Token[];
   public readonly protocol: Protocol;
   public readonly id: string;
+  public readonly poolData?: any;
   constructor(
     tokensAmount: TokenAmount[],
     id: string,
-    protocol: Protocol = Protocol.Unknow
+    protocol: Protocol = Protocol.Unknow,
+    poolData?: any
   ) {
     this.tokens = tokensAmount.map(tokenAmount => tokenAmount.token);
     this.tokensAmount = tokensAmount;
     this.protocol = protocol;
-    this.id = id;
+    this.id = id.toLowerCase();
+    this.poolData = poolData;
   }
 
   public involvesToken(token: Token): boolean {

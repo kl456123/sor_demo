@@ -24,7 +24,12 @@ task("accounts", "Prints the list of accounts", async (_, hre) => {
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
-      { version: "0.8.0" },
+      { version: "0.8.0" , settings: {
+            optimizer: {
+                    enabled: true,
+                    runs: 200
+                  }
+          }},
     ],
   },
   networks: {
@@ -33,7 +38,7 @@ const config: HardhatUserConfig = {
             enabled: true,
             url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_API_KEY}`,
         },
-        allowUnlimitedContractSize:true
+        allowUnlimitedContractSize:true,
     },
     oecmainnet: {
       url: "https://exchainrpc.okex.org/",
@@ -44,6 +49,11 @@ const config: HardhatUserConfig = {
       url: process.env.ROPSTEN_URL || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    dev: {
+        url: `https://eth-mainnet.alchemyapi.io/v2/0L8Mtb314bYl6JWFwGUipiXK-fOm6BKc`,
+        accounts:
+            process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
   gasReporter: {

@@ -1,10 +1,8 @@
 // all base entities for trading
 import { BigNumber, BigNumberish } from '@ethersproject/bignumber';
 import { BigNumber as Big } from 'bignumber.js';
-import _ from 'lodash';
 import invariant from 'tiny-invariant';
 
-import { IPoolProvider, PoolProvider } from './pool_provider';
 import { Protocol, TradeType } from './types';
 
 class Token {
@@ -29,7 +27,7 @@ class Token {
     this.name = name;
     this.chainId = chainId;
     this.decimals = decimals;
-    this.address = address;
+    this.address = address.toLowerCase();
     this.symbol = symbol;
   }
 
@@ -202,76 +200,4 @@ export interface IRouteWithValidQuote {
   protocol: Protocol;
 }
 
-export type RouteWithValidQuoteParams = {
-  amount: TokenAmount;
-  percent: number;
-  rawQuote: BigNumber;
-  quoteToken: Token;
-  route: Route;
-  estimateGasCost: (routeWithValidQuote: RouteWithValidQuote) => TokenAmount;
-  tradeType: TradeType;
-  poolProvider: IPoolProvider;
-};
-
-class RouteWithValidQuote implements IRouteWithValidQuote {
-  public amount: TokenAmount;
-  public percent: number;
-  public quoteAdjustedForGas: TokenAmount;
-  public quote: TokenAmount;
-  public route: Route;
-  public tradeType: TradeType;
-  public poolAddresses: string[];
-  public poolKeys: string[];
-  public tokenPath: Token[];
-  public gasCostInToken: TokenAmount;
-  public protocol: Protocol;
-  constructor({
-    amount,
-    percent,
-    rawQuote,
-    quoteToken,
-    route,
-    estimateGasCost,
-    tradeType,
-    poolProvider,
-  }: RouteWithValidQuoteParams) {
-    this.amount = amount;
-    this.percent = percent;
-    this.quote = new TokenAmount(quoteToken, rawQuote);
-    this.route = route;
-    this.tradeType = tradeType;
-    this.tokenPath = route.path;
-
-    // no gas cost considered
-    this.gasCostInToken = estimateGasCost(this);
-
-    if (tradeType == TradeType.EXACT_INPUT) {
-      const quoteGasAdjusted = this.quote.subtract(this.gasCostInToken);
-      this.quoteAdjustedForGas = quoteGasAdjusted;
-    } else {
-      const quoteGasAdjusted = this.quote.add(this.gasCostInToken);
-      this.quoteAdjustedForGas = quoteGasAdjusted;
-    }
-
-    // get pools addresses
-    this.poolAddresses = _.map(route.pools, pool => {
-      return poolProvider.getPoolAddress(
-        pool.token0,
-        pool.token1,
-        pool.protocol
-      ).poolAddress;
-    });
-
-    this.poolKeys = _.map(route.pools, pool => {
-      return PoolProvider.calcCacheKey(
-        pool.token0.address,
-        pool.token1.address,
-        pool.chainId,
-        this.route.protocol
-      );
-    });
-    this.protocol = this.route.protocol;
-  }
-}
-
-export { Token, Pool, Route, TokenAmount, RouteWithValidQuote };
+export { Token, Pool, Route, TokenAmount };

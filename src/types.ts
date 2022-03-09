@@ -1,6 +1,6 @@
 import { BigNumber } from 'ethers';
 
-import { Route, RouteWithValidQuote, TokenAmount } from './entities';
+import { Route, TokenAmount } from './entities';
 
 export enum ChainId {
   MAINNET = 1,
@@ -35,20 +35,25 @@ export type LocalCacheEntry<T> = {
 
 export enum Protocol {
   UniswapV2 = 'Uniswap_V2',
+  SushiSwap = 'SushiSwap',
+  Curve = 'Curve',
+  CurveV2 = 'CurveV2',
+  Eth2Dai = 'Eth2Dai',
+  ZeroX = 'ZeroX', // limit order
+  Balancer = 'Balancer',
+  BalancerV2 = 'BalancerV2',
+  Bancor = 'Bancor',
+  UniswapV3 = 'UniswapV3',
+  DODO = 'DODO',
+  DODOV2 = 'DODOV2',
+  Kyber = 'Kyber',
+  MakerPSM = 'MakerPSM',
+
   // difference uniswapv3 by fee amounts
   UniswapV3_LOWEST = 'Uniswap_V3_LOWEST',
   UniswapV3_LOW = 'Uniswap_V3_LOW',
   UniswapV3_MEDIUM = 'Uniswap_V3_MEDIUM',
   UniswapV3_HIGH = 'Uniswap_V3_HIGH',
-  SushiSwap = 'SushiSwap',
-  Curve = 'Curve',
-  Eth2Dai = 'Eth2Dai',
-  ZeroX = 'ZeroX', // limit order
-  Balancer = 'Balancer',
-  BalancerV2 = 'BalancerV2',
-  UniswapV3 = 'UniswapV3',
-  DODO = 'DODO',
-  DODOV2 = 'DODOV2',
 
   // BSC only
   PancakeSwapV2 = 'PancakeSwap_V2',
@@ -58,8 +63,8 @@ export enum Protocol {
   QuickSwap = 'QuickSwap',
   // need to determined lately
   Unknow = 'Unknow',
-  // composed liquidity pool used to quote for multi-hop path
-  MultiHop = 'MultiHop',
+
+  
 }
 
 // subgraph to fetch pools for specific sources
@@ -90,6 +95,7 @@ export type RawPool = {
   id: string;
   tokens: RawToken[];
   reserve: number;
+  poolData?: any;
 };
 
 ////////////////////////////////
@@ -126,15 +132,6 @@ export type RoutingConfig = {
 // sample queries on single route for many quote amounts
 export type AmountQuote = { amount: TokenAmount; quote?: BigNumber };
 export type RouteWithQuotes = [Route, AmountQuote[]];
-
-export type SwapRoute = {
-  routes: RouteWithValidQuote[];
-  blockNumber: number;
-  quote: TokenAmount;
-  quoteAdjustedForGas: TokenAmount;
-};
-
-export type RoutesByProtocol = { [protocol in Protocol]?: Route[] };
 
 // common
 export enum Rounding {

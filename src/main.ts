@@ -7,11 +7,7 @@ import { SwapRouteV2 } from './best_swap_route';
 import { Token, TokenAmount } from './entities';
 import logging from './logging';
 import { AlphaRouter, IRouter } from './router';
-import {
-  ISubgraphPoolProvider,
-  SubgraphPoolProvider,
-} from './subgraph_provider';
-import { ChainId, Protocol, ProviderConfig, TradeType } from './types';
+import { ChainId, Protocol, TradeType } from './types';
 
 dotenv.config();
 
@@ -32,22 +28,23 @@ type TradeParams = {
   quoteToken: Token;
   tradeType: TradeType;
 };
-const nodeUrl =
-  'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
-// const nodeUrl = 'http://127.0.0.1:8545';
+// const nodeUrl =
+// 'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
+const nodeUrl = 'http://127.0.0.1:8545';
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
   private readonly router: IRouter;
-  private readonly subgraphPoolProvider: ISubgraphPoolProvider;
   constructor(public readonly chainId: ChainId) {
     // this.provider = ethers.providers.getDefaultProvider('mainnet');
-    this.provider = new ethers.providers.JsonRpcProvider(nodeUrl);
+    this.provider = new ethers.providers.JsonRpcProvider({
+      url: nodeUrl,
+      timeout: 400000,
+    });
     this.router = new AlphaRouter({
       provider: this.provider,
       chainId: this.chainId,
     });
-    this.subgraphPoolProvider = new SubgraphPoolProvider(this.chainId);
   }
 
   public async quote({
@@ -61,29 +58,12 @@ class TestSuite {
       includedSources: [
         Protocol.UniswapV2,
         // Protocol.BalancerV2,
+        Protocol.UniswapV3,
         Protocol.Curve,
       ],
       maxSplits: 4,
     });
     return swapRoute;
-  }
-
-  public async getPools() {
-    const curBlockNumber = await this.provider.getBlockNumber();
-    const delay = 10;
-    const blockNumber = curBlockNumber - delay;
-    const providerConfig: ProviderConfig = { blockNumber };
-
-    const now = Date.now();
-    const rawPools = await this.subgraphPoolProvider.getPools(
-      undefined,
-      undefined,
-      providerConfig
-    );
-
-    const deltaTime = Date.now() - now;
-    logging.getGlobalLogger().info(deltaTime);
-    logging.getGlobalLogger().info(rawPools.length);
   }
 }
 

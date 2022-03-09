@@ -7,8 +7,12 @@ import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
 
-import { Token } from './entities';
-import { ChainId, ProviderConfig, SubgraphPool } from './types';
+import { Token } from '../entities';
+import { IRawPoolProvider } from '../rawpool_provider';
+import { ChainId, ProviderConfig, RawPool } from '../types';
+
+const PAGE_SIZE = 1000;
+const threshold = 0.025;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
@@ -16,16 +20,6 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-rinkeby',
 };
-const PAGE_SIZE = 1000;
-const threshold = 0.025;
-
-export interface ISubgraphPoolProvider {
-  getPools(
-    tokenIn?: Token,
-    tokenOut?: Token,
-    providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool[]>;
-}
 
 // raw pools is only used in uniswapv2 subgraph
 type RawSubgraphPool = {
@@ -40,10 +34,11 @@ type RawSubgraphPool = {
   };
   totalSupply: string;
   reserveETH: string;
+  reserveUSD: string;
   trackedReserveETH: string;
 };
 
-export class SubgraphPoolProvider implements ISubgraphPoolProvider {
+export class UniswapV2SubgraphPoolProvider implements IRawPoolProvider {
   private client: GraphQLClient;
 
   constructor(
@@ -63,7 +58,7 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
     _tokenIn?: Token,
     _tokenOut?: Token,
     providerConfig?: ProviderConfig
-  ): Promise<SubgraphPool[]> {
+  ): Promise<RawPool[]> {
     let blockNumber = providerConfig?.blockNumber
       ? providerConfig.blockNumber
       : undefined;
@@ -78,6 +73,7 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
     token1 {id, symbol}
     totalSupply
     reserveETH
+    reserveUSD
     trackedReserveETH
     }
   }
@@ -154,34 +150,34 @@ export class SubgraphPoolProvider implements ISubgraphPoolProvider {
     );
 
     // postprocess
-    const poolsSanitized: SubgraphPool[] = filterPools(pools, 'Uniswap_V2');
+    const poolsSanitized: RawPool[] = filterPools(pools, 'Uniswap_V2');
 
     return poolsSanitized;
   }
 }
 
-export class StaticFileSubgraphProvider implements ISubgraphPoolProvider {
-  public async getPools(): Promise<SubgraphPool[]> {
+export class UniswapV2StaticFileSubgraphProvider implements IRawPoolProvider {
+  public async getPools(): Promise<RawPool[]> {
     const poolsSanitized = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, '../data/v2pools.json'), 'utf8')
+      fs.readFileSync(
+        path.resolve(__dirname, '../../data/v2pools.json'),
+        'utf8'
+      )
     ) as RawSubgraphPool[];
     return filterPools(poolsSanitized, 'Uniswap_V2');
   }
 }
 
-const filterPools = (
-  pools: RawSubgraphPool[],
-  protocol: string
-): SubgraphPool[] => {
+const filterPools = (pools: RawSubgraphPool[], protocol: string): RawPool[] => {
   return pools
     .filter(pool => parseFloat(pool.trackedReserveETH) > threshold)
     .map(pool => ({
-      ...pool,
       id: pool.id.toLowerCase(),
-      token0: { id: pool.token0.id.toLowerCase(), symbol: pool.token0.symbol },
-      token1: { id: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
-      supply: parseFloat(pool.totalSupply),
-      reserve: parseFloat(pool.trackedReserveETH),
+      tokens: [
+        { address: pool.token0.id.toLowerCase(), symbol: pool.token0.symbol },
+        { address: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
+      ],
+      reserve: parseFloat(pool.reserveUSD),
       protocol,
     }));
 };

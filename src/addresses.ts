@@ -1,6 +1,7 @@
-import { constants } from 'ethers';
+import { constants, utils } from 'ethers';
 
 import { ChainId, Protocol } from './types';
+import { WETH9 } from './base_token';
 
 // use contracts from 0x protocol for more liquidity sources
 export const contractAddressesByChain: {
@@ -88,3 +89,45 @@ export const DODOV1_CONFIG_BY_CHAIN_ID: valueByChain<{
     registry: '0x357c5e9cfa8b834edcef7c7aabd8f9db09119d11',
   },
 };
+
+export const UNISWAPV3_CONFIG_BY_CHAIN_ID: valueByChain<{
+  quoter: string;
+  router: string;
+}> = {
+  [ChainId.MAINNET]: {
+    quoter: '0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6',
+    router: '0xe592427a0aece92de3edee1f18e0157c05861564',
+  },
+  [ChainId.ROPSTEN]: {
+    quoter: '0x2f9e608fd881861b8916257b76613cb22ee0652c',
+    router: '0x03782388516e94fcd4c18666303601a12aa729ea',
+  },
+};
+
+export const KYBER_CONFIG_BY_CHAIN_ID: valueByChain<{
+    networkProxy: string,
+    hintHandler:string,
+    weth:string
+}> = {
+          [ChainId.MAINNET]: {
+              networkProxy: '0x9aab3f75489902f3a48495025729a0af77d4b11e',
+              hintHandler: '0xa1C0Fa73c39CFBcC11ec9Eb1Afc665aba9996E2C',
+              weth: WETH9[ChainId.MAINNET]!.address,
+          },
+      };
+
+
+export const BANCOR_REGISTRY_BY_CHAIN_ID : valueByChain<string> =
+      {
+                [ChainId.MAINNET]: '0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4',
+            };
+
+export const MAKER_PSM_INFO_BY_CHAIN_ID : valueByChain<{gemTokenAddress:string, ilkIdentifier:string, psmAddress:string}> =
+      {
+          [ChainId.MAINNET]: {
+              // Currently only USDC is supported
+              gemTokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+              ilkIdentifier: utils.formatBytes32String('PSM-USDC-A'),
+              psmAddress: '0x89b78cfa322f6c5de0abceecab66aee45393cc5a',
+          },
+      };
