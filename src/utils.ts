@@ -32,10 +32,15 @@ export const multiplexRouteQToString = (
     routeStr.push(`${directSwapRotue.output.symbol}`);
     return routeStr.join('');
   }
-  const routeStr = [];
+  const resultStr = [];
+  const routesStr = routeWithQuote.routesWithQuote.map(multiplexRouteQToString);
   if (routeWithQuote.routeType == RouteType.MULTI_HOP) {
-    routeStr.push(`${routeWithQuote.percent}%=>`);
+    resultStr.push(`\n\n${routeWithQuote.percent}%\n`);
+    resultStr.push(routesStr.join('\n=======>\n'));
+    return resultStr.join('');
   }
-  routeStr.push(routeWithQuote.routesWithQuote.map(multiplexRouteQToString));
-  return routeStr.join('');
+
+  // fallback to batch route
+  resultStr.push(routesStr.join('\n'));
+  return resultStr.join('');
 };
