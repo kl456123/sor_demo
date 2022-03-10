@@ -24,10 +24,10 @@ import {
 } from './addresses';
 import { DirectSwapRoute } from './entitiesv2';
 import { logger } from './logging';
-import { getCurveInfosForPool } from './markets/curve';
+import { getCurveLikeInfosForPool } from './markets/curve';
 import { BalancerV2PoolInfo } from './markets/types';
 import { UniswapV3PoolData } from './markets/uniswapv3_subgraph_provider';
-import { SampleParams } from './sampler_params';
+import { SampleParams as SamplerRoute } from './sampler_params';
 import { ChainId, Protocol } from './types';
 
 export interface ContractOperation<TResult> {
@@ -41,13 +41,6 @@ export interface SourceContractOperation
   readonly protocol: Protocol;
 }
 
-// export interface SamplerRoute {
-// protocol: Protocol;
-// poolAddress?: string;
-// path: string[];
-// }
-export type SamplerRoute = SampleParams;
-
 export interface DexSample {
   protocol: Protocol;
   input: BigNumber;
@@ -59,6 +52,7 @@ export type SamplerContractOption<TFunctionParams> = {
   contractInterface: Interface;
   functionName: string;
   functionParams?: TFunctionParams;
+  callback?: (callResults: string)=>BigNumber[];
 };
 
 export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
@@ -68,11 +62,13 @@ export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
   private readonly functionParams?: TFunctionParams;
   private readonly contractInterface: Interface;
   public readonly protocol: Protocol;
+  private readonly callback?: (callResults: string) => BigNumber[];
   constructor(options: SamplerContractOption<TFunctionParams>) {
     this.functionName = options.functionName;
     this.functionParams = options.functionParams;
     this.contractInterface = options.contractInterface;
     this.protocol = options.protocol;
+    this.callback = options.callback;
   }
 
   public encodeCall(): string {
@@ -85,11 +81,14 @@ export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
   }
 
   public handleCallResults(callResults: string): BigNumber[] {
-    const fragment = this.contractInterface.getFunction(this.functionName);
-    return this.contractInterface.decodeFunctionResult(
-      fragment,
-      callResults
-    )[0] as unknown as BigNumber[];
+      if(this.callback!==undefined){
+          return this.callback(callResults);
+      }
+      const fragment = this.contractInterface.getFunction(this.functionName);
+        return this.contractInterface.decodeFunctionResult(
+        fragment,
+        callResults
+        )[0] as unknown as BigNumber[];
   }
   public handleRevert(callResults: string): BigNumber[] {
     const msg = this.contractInterface
@@ -223,7 +222,7 @@ export class SamplerOperation {
       protocol: Protocol.BalancerV2,
       contractInterface: ERC20BridgeSampler__factory.createInterface(),
       functionName: 'sampleBuysFromBalancerV2',
-      functionParams: [poolInfo, makerToken, takerToken, makerFillAmounts],
+      functionParams: [poolInfo, takerToken, makerToken, makerFillAmounts],
     });
   }
 
@@ -237,7 +236,7 @@ export class SamplerOperation {
       protocol: Protocol.BalancerV2,
       contractInterface: ERC20BridgeSampler__factory.createInterface(),
       functionName: 'sampleSellsFromBalancerV2',
-      functionParams: [poolInfo, makerToken, takerToken, takerFillAmounts],
+      functionParams: [poolInfo, takerToken, makerToken, takerFillAmounts],
     });
   }
 
@@ -258,6 +257,14 @@ export class SamplerOperation {
         makerToken,
         takerFillAmounts,
       ],
+        callback: (callResults):BigNumber[]=>{
+        const fragment = this.contractInterface.getFunction('sampleSellsFromDODO');
+        const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
+        fragment,
+        callResults
+        );
+        return samples;
+        }
     });
   }
 
@@ -278,8 +285,60 @@ export class SamplerOperation {
         makerToken,
         makerFillAmounts,
       ],
+     callback: (callResults):BigNumber[]=>{
+        const fragment = this.contractInterface.getFunction('sampleBuysFromDODO');
+        const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
+        fragment,
+        callResults
+        );
+        return samples;
+        }
     });
   }
+
+public getDODOV2SellQuotes(
+          registry: string,
+          offset: number,
+          makerToken: string,
+          takerToken: string,
+          takerFillAmounts: BigNumber[],
+      ): SourceContractOperation {
+          return new SamplerContractOperation({
+              protocol: Protocol.DODOV2,
+              contractInterface: ERC20BridgeSampler__factory.createInterface(),
+              functionName: 'sampleSellsFromDODOV2',
+              functionParams: [registry, offset, takerToken, makerToken, takerFillAmounts],
+            callback: (callResults: string): BigNumber[] => {
+                  const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
+                    'sampleSellsFromDODOV2',
+                    callResults
+                );
+                  return samples;
+              },
+          });
+      }
+
+      public getDODOV2BuyQuotes(
+          registry: string,
+          offset: number,
+          makerToken: string,
+          takerToken: string,
+          makerFillAmounts: BigNumber[],
+      ): SourceContractOperation {
+          return new SamplerContractOperation({
+              protocol: Protocol.DODOV2,
+              contractInterface: ERC20BridgeSampler__factory.createInterface(),
+              functionName: 'sampleBuysFromDODOV2',
+              functionParams: [registry, offset, takerToken, makerToken, makerFillAmounts],
+              callback: (callResults: string): BigNumber[] => {
+                  const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
+                    'sampleBuysFromDODOV2',
+                    callResults
+                );
+                  return samples;
+              },
+          });
+      }
 
   public getUniswapV3SellQuotes(
     quoter: string,
@@ -474,6 +533,7 @@ public getBancorSellQuotes(
             amounts,
             protocol
           );
+        case Protocol.CurveV2:
         case Protocol.Curve: {
           return this.getCurveSellQuotes(
             route.poolAddress,
@@ -509,6 +569,15 @@ public getBancorSellQuotes(
             amounts
           );
         }
+        case Protocol.DODOV2: {
+          return this.getDODOV2SellQuotes(
+            route.registry,
+            route.offset,
+            route.makerToken,
+            route.takerToken,
+            amounts
+          );
+        }
           case Protocol.Kyber:{
               return this.getKyberSellQuotes(
                   route.networkProxy, route.hintHandler, route.weth, route.reserveOffset, route.makerToken, route.takerToken, amounts);
@@ -519,6 +588,9 @@ public getBancorSellQuotes(
           case Protocol.MakerPSM:{
               return this.getMakerPsmSellQuotes(route.psmAddress, route.ilkIdentifier, route.gemTokenAddress, route.makerToken, route.takerToken, amounts);
           }
+        case Protocol.Balancer:{
+            return this.getBalancerSellQuotes(route.poolAddress, route.makerToken, route.takerToken, amounts);
+        }
         default:
           throw new Error(`Unsupported sell sample protocol: ${protocol}`);
       }
@@ -546,9 +618,10 @@ public getBancorSellQuotes(
           fees: [poolData.feeTier],
         };
       }
+      case Protocol.CurveV2:
       case Protocol.Curve: {
         const poolAddress = route.pool.id;
-        const curveInfo = getCurveInfosForPool(poolAddress);
+        const curveInfo = getCurveLikeInfosForPool({poolAddress, protocol: route.pool.protocol});
         const tokensAddress = curveInfo.tokens.map(token => token.address);
         const fromTokenIdx = tokensAddress.indexOf(route.input.address);
         const toTokenIdx = tokensAddress.indexOf(route.output.address);
@@ -783,8 +856,7 @@ export class Sampler extends SamplerOperation {
     protected samplerOverrides: SamplerOverrides
   ) {
     super(chainId, ERC20BridgeSampler__factory.createInterface());
-    let samplerAddress = contractAddressesByChain[chainId]!.quoter;
-    samplerAddress = '0x5302e909d1e93e30f05b5d6eea766363d14f9892';
+    const samplerAddress = contractAddressesByChain[chainId]!.quoter;
     if (!samplerAddress) {
       throw new Error(
         `No address for sampler contract on chain id: ${chainId}`

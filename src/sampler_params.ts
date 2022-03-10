@@ -30,7 +30,7 @@ export type SampleFromUniswapV2Params = {
 };
 
 export type SampleFromCurveParmas = {
-  protocol: Protocol.Curve;
+  protocol: Protocol.Curve | Protocol.CurveV2;
   poolAddress: string;
   sellQuoteFunctionSelector: string;
   buyQuoteFunctionSelector: string;
@@ -56,7 +56,7 @@ export type SampleFromDODOParams = {
 export type SampleFromDODOV2Params = {
   protocol: Protocol.DODOV2;
   registry: string;
-  offset: BigNumberish;
+  offset: number;
   takerToken: string;
   makerToken: string;
 };

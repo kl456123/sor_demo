@@ -8,7 +8,8 @@ export const contractAddressesByChain: {
   [chainId in ChainId]?: { [name: string]: string };
 } = {
   [ChainId.MAINNET]: {
-    quoter: '0xd8c38704c9937ea3312de29f824b4ad3450a5e61',
+      quoter: '0xE9BBD6eC0c9Ca71d3DcCD1282EE9de4F811E50aF',
+    // quoter: '0xd8c38704c9937ea3312de29f824b4ad3450a5e61',
     swapper: '0xdef1c0ded9bec7f1a1670819833240f027b25eff',
   },
 };
@@ -71,6 +72,8 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN: valueByChain<string> = {
   [ChainId.MAINNET]:
     'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
 };
+
+export const BALANCER_SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer';
 
 export const DODOV1_CONFIG_BY_CHAIN_ID: valueByChain<{
   helper: string;

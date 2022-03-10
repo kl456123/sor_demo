@@ -128,13 +128,14 @@ const DODOPools:DODOPoolType[] = [
 
 
 export class DODOPoolProvider implements IRawPoolProvider {
-public async getPools(): Promise<RawPool[]> {
+    public async getPools(): Promise<RawPool[]> {
     const rawPools: RawPool[] = [];
     for(const pool of DODOPools){
-        const tokens = pool.tokens.map(token=>{
-            return DODOTokens[token];
+        const tokens = pool.tokens.map(tokenSymbol=>{
+                const token = DODOTokens[tokenSymbol];
+            return {address: token.address.toLowerCase(), symbol: token.symbol};
         });
-        rawPools.push({protocol: 'DODO', id: pool.address, tokens, reserve: 0});
+        rawPools.push({protocol: 'DODO', id: pool.address, tokens, reserve: Number.MAX_SAFE_INTEGER});
     }
     return rawPools;
   }

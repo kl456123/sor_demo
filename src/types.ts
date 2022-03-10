@@ -124,7 +124,7 @@ export type RoutingConfig = {
   firstDistributionPercent: number;
   secondDistributionPercent: number;
   maxSwapsPerPath: number;
-  poolSelections: ProtocolPoolSelection;
+  poolSelections: Partial<ProtocolPoolSelection>;
   includedSources: Protocol[];
   excludedSources: Protocol[];
 };

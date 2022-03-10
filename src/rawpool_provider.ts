@@ -12,6 +12,7 @@ import { UniswapV3SubgraphPoolProvider } from './markets/uniswapv3_subgraph_prov
 import { DODOV2SubgraphPoolProvider } from './markets/dodov2_subgraph_provider';
 import { DODOPoolProvider } from './markets/dodo_provider';
 import { CurveV2PoolProvider } from './markets/curvev2_pool_provider';
+import { BalancerPoolProvider } from './markets/balancer_subgraph_provider';
 import { ChainId, Protocol, ProviderConfig, RawPool } from './types';
 
 export interface IRawPoolProvider {
@@ -38,12 +39,15 @@ export class RawPoolProvider {
   protected balancerV2PoolProvider: IRawPoolProvider;
   protected dodoV2PoolProvider: IRawPoolProvider;
   protected dodoPoolProvider: IRawPoolProvider;
+  protected balancerPoolProvider: IRawPoolProvider;
   private nodecache: NodeCache;
   constructor(public readonly chainId: ChainId) {
     this.uniswapV2SubgraphPoolProvider =
       new UniswapV2StaticFileSubgraphProvider();
     this.balancerV2PoolProvider = new BalancerV2PoolProvider(chainId);
+    this.balancerPoolProvider = new BalancerPoolProvider();
     this.curvePoolProvider = new CurvePoolProvider();
+    // this.curvePoolProvider = new CurveSubgraphPoolProvider(chainId);
     this.uniswapV3SubgraphPoolProvider = new UniswapV3SubgraphPoolProvider(
       chainId
     );
@@ -81,6 +85,9 @@ export class RawPoolProvider {
               break;
           case Protocol.CurveV2:
             poolsFetchPromises.push(this.curveV2PoolProvider.getPools());
+              break;
+          case Protocol.Balancer:
+            poolsFetchPromises.push(this.balancerPoolProvider.getPools());
               break;
         default:
           throw new Error(
@@ -127,12 +134,17 @@ export class RawPoolProvider {
     const tokensTopool: Record<string, string[]> = {};
     for (const rawPool of rawPools) {
       const tokens = rawPool.tokens.map(token => tokenAccessor[token.address]);
+      let skip = false;
       for (const token of tokens) {
         if (!token) {
           logger.info(`Dropping candidate pool for ${rawPool.id}`);
+            skip = true;
           break;
         }
       }
+        if(skip){
+            continue;
+        }
       const tokensAmount = tokens.map(token => new TokenAmount(token!, 10));
       const pool = new Pool(
         tokensAmount,

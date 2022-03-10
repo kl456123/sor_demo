@@ -24,10 +24,10 @@ async function main() {
   await sampler.deployed();
   console.log("Sampler deployed to:", sampler.address);
 
-  const Quoter = await ethers.getContractFactory("Quoter");
-  const quoter = await Quoter.deploy();
-  await quoter.deployed();
-  console.log("Quoter deployed to:", quoter.address);
+  // const Quoter = await ethers.getContractFactory("Quoter");
+  // const quoter = await Quoter.deploy();
+  // await quoter.deployed();
+  // console.log("Quoter deployed to:", quoter.address);
 
 }
 

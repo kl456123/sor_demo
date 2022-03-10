@@ -67,8 +67,8 @@
         "lodash": "^4.17.21",
         "mnemonist": "^0.38.3",
         "node-cache": "^5.1.2",
-        "node-threadpool": "^1.5.5",
         "stats-lite": "^2.2.0",
+        "surrial": "^2.0.2",
         "tslib": "^1.14.1"
     },
     "devDependencies": {

@@ -28,9 +28,9 @@ type TradeParams = {
   quoteToken: Token;
   tradeType: TradeType;
 };
-// const nodeUrl =
-// 'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
-const nodeUrl = 'http://127.0.0.1:8545';
+const nodeUrl =
+'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
+// const nodeUrl = 'http://127.0.0.1:8545';
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
@@ -57,11 +57,23 @@ class TestSuite {
       maxSwapsPerPath: 2,
       includedSources: [
         Protocol.UniswapV2,
-        // Protocol.BalancerV2,
         Protocol.UniswapV3,
+        Protocol.DODO,
+        Protocol.DODOV2,
+        Protocol.Balancer,
+        Protocol.BalancerV2,
         Protocol.Curve,
+        Protocol.CurveV2,
       ],
       maxSplits: 4,
+      poolSelections:{
+        topN: 10,
+        topNSecondHop: 10,
+        topNTokenInOut: 10,
+        topNWithEachBaseToken: 2,
+        topNWithBaseToken: 5,
+        topNWithBaseTokenInSet: true,
+      }
     });
     return swapRoute;
   }

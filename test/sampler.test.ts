@@ -17,8 +17,7 @@ describe('test quote provider', () => {
   const tokens = TOKENS[chainId]!;
 
   beforeAll(() => {
-    const nodeUrl = 'http://127.0.0.1:8545';
-    provider = new ethers.providers.JsonRpcProvider(nodeUrl);
+    provider = ethers.providers.getDefaultProvider();
     sampler = new Sampler(chainId, provider, {});
   });
 
@@ -70,16 +69,16 @@ describe('test quote provider', () => {
       ethers.utils.parseUnits('30', 18),
     ];
     const poolId =
-      '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063';
+      '0xa6f548df93de924d73be7d25dc02554c6bd66db500020000000000000000000e';
 
     const tokensAmount = [
-      new TokenAmount(tokens.DAI, 10),
-      new TokenAmount(tokens.USDC, 10),
+      new TokenAmount(tokens.WETH, 10),
+      new TokenAmount(tokens.WBTC, 10),
     ];
     const directSwapRoutes: DirectSwapRoute[] = [];
     const protocol = Protocol.BalancerV2;
     const pool = new PoolV2(tokensAmount, poolId, protocol);
-    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.DAI, tokens.USDC));
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.WETH, tokens.WBTC));
 
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
     await testGetQuotes(directSwapRoutes, fillAmounts, false);
@@ -108,66 +107,66 @@ describe('test quote provider', () => {
     await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
 
-  test.skip('test dodov1 sample', async () => {
+  test('test dodov1 sample', async () => {
     const fillAmounts = [
-      ethers.utils.parseUnits('10', 6),
-      ethers.utils.parseUnits('30', 6),
+      ethers.utils.parseUnits('10', 18),
+      ethers.utils.parseUnits('30', 18),
     ];
     const poolAddress = '0x';
     // USDC => USDT
     const directSwapRoutes: DirectSwapRoute[] = [];
     const tokensAmount = [
+      new TokenAmount(tokens.WETH, 10),
       new TokenAmount(tokens.USDC, 10),
-      new TokenAmount(tokens.USDT, 10),
     ];
     const protocol = Protocol.DODO;
     const pool = new PoolV2(tokensAmount, poolAddress, protocol);
-    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.WETH, tokens.USDC));
 
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
     await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
 
-  test.skip('test dodov2 sample', async () => {
+  test('test dodov2 sample', async () => {
     const fillAmounts = [
-      ethers.utils.parseUnits('10', 6),
-      ethers.utils.parseUnits('30', 6),
+      ethers.utils.parseUnits('10', 18),
+      ethers.utils.parseUnits('30', 18),
     ];
     const poolAddress = '0x';
     // USDC => USDT
     const directSwapRoutes: DirectSwapRoute[] = [];
     const tokensAmount = [
+      new TokenAmount(tokens.WETH, 10),
       new TokenAmount(tokens.USDC, 10),
-      new TokenAmount(tokens.USDT, 10),
     ];
     const protocol = Protocol.DODOV2;
     const pool = new PoolV2(tokensAmount, poolAddress, protocol);
-    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.WETH, tokens.USDC));
 
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
     await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
 
-  test('test uniswapv3 sample', async () => {
+  test.only('test uniswapv3 sample', async () => {
     const fillAmounts = [
-      ethers.utils.parseUnits('1000', 6),
-      ethers.utils.parseUnits('3000', 6),
+      ethers.utils.parseUnits('1000', 18),
+      ethers.utils.parseUnits('3000', 18),
     ];
 
     // DAI => USDC
     const tokensAmount = [
+      new TokenAmount(tokens.WETH, 10),
       new TokenAmount(tokens.USDC, 10),
-      new TokenAmount(tokens.USDT, 10),
     ];
     const poolAddress = '0x';
     const directSwapRoutes: DirectSwapRoute[] = [];
     const protocol = Protocol.UniswapV3;
-    const poolData = { feeTier: 100 } as UniswapV3PoolData;
+    const poolData = { feeTier: 3000 } as UniswapV3PoolData;
     const pool = new PoolV2(tokensAmount, poolAddress, protocol, poolData);
-    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.USDC, tokens.USDT));
+    directSwapRoutes.push(new DirectSwapRoute(pool, tokens.WETH, tokens.USDC));
 
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
-    await testGetQuotes(directSwapRoutes, fillAmounts, false);
+    // await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
     test('test kyber sample', async ()=>{
     });

@@ -15,16 +15,16 @@ describe('RawPoolProvider Test', () => {
     const protocols: Protocol[] = [
       // Protocol.UniswapV2,
       // Protocol.BalancerV2,
-      // Protocol.Curve,
+      Protocol.Curve,
       // Protocol.UniswapV3,
-      Protocol.CurveV2,
+      // Protocol.Balancer,
     ];
     for (const protocol of protocols) {
       const rawPools = await rawPoolProvider.getRawPools([protocol]);
       const newRawPools = _(rawPools).uniqBy(rawPool=>rawPool.id).value();
       expect(rawPools.length).toBeGreaterThan(0);
       expect(rawPools.length).toEqual(newRawPools.length);
-      console.log(rawPoolProvider.getPoolAddressByString(tokens.WETH.address, tokens.USDT.address));
+      console.log(rawPoolProvider.getPoolAddressByString(tokens.USDT.address, tokens.USDC.address));
     }
   });
 

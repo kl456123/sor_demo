@@ -2,7 +2,7 @@ import invariant from 'tiny-invariant';
 
 import { TOKENS } from '../base_token';
 import { Token } from '../entities';
-import { ChainId } from '../types';
+import { ChainId, Protocol } from '../types';
 
 export type CurveInfo = {
   poolAddress: string;
@@ -103,6 +103,27 @@ export function getCurveInfosForPool(poolAddress: string): CurveInfo {
   );
   invariant(curveInfos.length == 1, 'CurveInfo');
   return curveInfos[0];
+}
+
+export function getCurveV2InfosForPool(poolAddress: string): CurveInfo {
+  const curveInfos = Object.values(CURVE_V2_MAINNET_INFOS).filter(
+    c => c.poolAddress === poolAddress.toLowerCase()
+  );
+  invariant(curveInfos.length == 1, 'CurveInfo');
+  return curveInfos[0];
+}
+
+export function getCurveLikeInfosForPool({poolAddress, protocol}:{poolAddress: string, protocol:Protocol}){
+    switch(protocol){
+        case Protocol.CurveV2:{
+            return getCurveV2InfosForPool(poolAddress);
+        }
+        case Protocol.Curve:{
+            return getCurveInfosForPool(poolAddress);
+        }
+        default:
+            throw new Error(`unknown protocol: ${protocol}`);
+    }
 }
 
 
