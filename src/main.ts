@@ -1,9 +1,13 @@
+import fs from 'fs';
+import path from 'path';
+
 import bunyan from 'bunyan';
 import dotenv from 'dotenv';
 import { ethers } from 'ethers';
 
 import { TOKENS } from './base_token';
 import { SwapRouteV2 } from './best_swap_route';
+import { globalBlacklist } from './blacklist';
 import { Token, TokenAmount } from './entities';
 import logging from './logging';
 import { AlphaRouter, IRouter } from './router';
@@ -28,9 +32,8 @@ type TradeParams = {
   quoteToken: Token;
   tradeType: TradeType;
 };
-const nodeUrl =
-'https://eth-mainnet.alchemyapi.io/v2/mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03';
-// const nodeUrl = 'http://127.0.0.1:8545';
+
+const nodeUrl = process.env.MAINNET_URL!;
 
 class TestSuite {
   private readonly provider: ethers.providers.BaseProvider;
@@ -39,7 +42,7 @@ class TestSuite {
     // this.provider = ethers.providers.getDefaultProvider('mainnet');
     this.provider = new ethers.providers.JsonRpcProvider({
       url: nodeUrl,
-      timeout: 400000,
+      timeout: 40000,
     });
     this.router = new AlphaRouter({
       provider: this.provider,
@@ -56,8 +59,8 @@ class TestSuite {
       // tx calldata is too large to send
       maxSwapsPerPath: 2,
       includedSources: [
-        Protocol.UniswapV2,
         Protocol.UniswapV3,
+        Protocol.UniswapV2,
         Protocol.DODO,
         Protocol.DODOV2,
         Protocol.Balancer,
@@ -65,15 +68,16 @@ class TestSuite {
         Protocol.Curve,
         Protocol.CurveV2,
       ],
-      maxSplits: 4,
-      poolSelections:{
+      maxSplits: 6,
+      poolSelections: {
         topN: 10,
-        topNSecondHop: 10,
-        topNTokenInOut: 10,
+        topNSecondHop: 6,
+        topNTokenInOut: 8,
+        topNDirectSwaps: 1,
         topNWithEachBaseToken: 2,
         topNWithBaseToken: 5,
         topNWithBaseTokenInSet: true,
-      }
+      },
     });
     return swapRoute;
   }
@@ -85,19 +89,29 @@ async function main() {
 
   // trade params
   const tokens = TOKENS[chainId]!;
-  const baseToken = tokens.WETH;
-  const quoteToken = tokens.USDC;
+  const baseToken = tokens.YFI;
+  const quoteToken = tokens.UNI;
   // find the best route for quote
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('1000', baseToken.decimals)
+    ethers.utils.parseUnits('1', baseToken.decimals)
   );
 
   const swapRoute = await testSuite.quote({ amount, quoteToken, tradeType });
   if (!swapRoute) {
     return;
   }
+
+  // update blacklist
+  const blacklistPools = Array.from(globalBlacklist());
+  logging
+    .getGlobalLogger()
+    .info(`num of pools in blacklist: ${blacklistPools.length}`);
+  fs.writeFileSync(
+    path.resolve(__dirname, '../data/blacklist.json'),
+    JSON.stringify(blacklistPools)
+  );
 }
 
 main().catch(console.error);

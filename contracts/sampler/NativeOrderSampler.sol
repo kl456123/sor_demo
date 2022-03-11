@@ -20,13 +20,11 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
-
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+import '@openzeppelin/contracts/utils/math/SafeMath.sol';
+import '@openzeppelin/contracts/utils/math/Math.sol';
 
 interface IExchange {
-
     enum OrderStatus {
         INVALID,
         FILLABLE,
@@ -126,7 +124,7 @@ contract NativeOrderSampler {
     using Math for uint256;
 
     /// @dev Gas limit for calls to `getOrderFillableTakerAmount()`.
-    uint256 constant internal DEFAULT_CALL_GAS = 200e3; // 200k
+    uint256 internal constant DEFAULT_CALL_GAS = 200e3; // 200k
 
     /// @dev Queries the fillable taker asset amounts of native orders.
     ///      Effectively ignores orders that have empty signatures or
@@ -140,23 +138,16 @@ contract NativeOrderSampler {
         IExchange.LimitOrder[] memory orders,
         IExchange.Signature[] memory orderSignatures,
         IExchange exchange
-    )
-        public
-        view
-        returns (uint256[] memory orderFillableTakerAssetAmounts)
-    {
+    ) public view returns (uint256[] memory orderFillableTakerAssetAmounts) {
         orderFillableTakerAssetAmounts = new uint256[](orders.length);
         for (uint256 i = 0; i != orders.length; i++) {
             try
-                this.getLimitOrderFillableTakerAmount
-                    {gas: DEFAULT_CALL_GAS}
-                    (
-                       orders[i],
-                       orderSignatures[i],
-                       exchange
-                    )
-                returns (uint256 amount)
-            {
+                this.getLimitOrderFillableTakerAmount{gas: DEFAULT_CALL_GAS}(
+                    orders[i],
+                    orderSignatures[i],
+                    exchange
+                )
+            returns (uint256 amount) {
                 orderFillableTakerAssetAmounts[i] = amount;
             } catch (bytes memory) {
                 // Swallow failures, leaving all results as zero.
@@ -176,11 +167,7 @@ contract NativeOrderSampler {
         IExchange.LimitOrder[] memory orders,
         IExchange.Signature[] memory orderSignatures,
         IExchange exchange
-    )
-        public
-        view
-        returns (uint256[] memory orderFillableMakerAssetAmounts)
-    {
+    ) public view returns (uint256[] memory orderFillableMakerAssetAmounts) {
         orderFillableMakerAssetAmounts = getLimitOrderFillableTakerAssetAmounts(
             orders,
             orderSignatures,
@@ -190,8 +177,11 @@ contract NativeOrderSampler {
         // convert them to maker asset amounts.
         for (uint256 i = 0; i < orders.length; ++i) {
             if (orderFillableMakerAssetAmounts[i] != 0) {
-                orderFillableMakerAssetAmounts[i] =
-                    orderFillableMakerAssetAmounts[i].mul(orders[i].makerAmount).ceilDiv(orders[i].takerAmount);
+                orderFillableMakerAssetAmounts[
+                    i
+                ] = orderFillableMakerAssetAmounts[i]
+                    .mul(orders[i].makerAmount)
+                    .ceilDiv(orders[i].takerAmount);
             }
         }
     }
@@ -202,17 +192,13 @@ contract NativeOrderSampler {
         IExchange.LimitOrder memory order,
         IExchange.Signature memory signature,
         IExchange exchange
-    )
-        virtual
-        public
-        view
-        returns (uint256 fillableTakerAmount)
-    {
-        if (signature.signatureType == IExchange.SignatureType.ILLEGAL ||
+    ) public view virtual returns (uint256 fillableTakerAmount) {
+        if (
+            signature.signatureType == IExchange.SignatureType.ILLEGAL ||
             signature.signatureType == IExchange.SignatureType.INVALID ||
             order.makerAmount == 0 ||
-            order.takerAmount == 0)
-        {
+            order.takerAmount == 0
+        ) {
             return 0;
         }
 
@@ -223,10 +209,10 @@ contract NativeOrderSampler {
         ) = exchange.getLimitOrderRelevantState(order, signature);
 
         if (
-              orderInfo.status != IExchange.OrderStatus.FILLABLE ||
-              !isSignatureValid ||
-              order.makerToken == IERC20(address(0))
-            ) {
+            orderInfo.status != IExchange.OrderStatus.FILLABLE ||
+            !isSignatureValid ||
+            order.makerToken == IERC20(address(0))
+        ) {
             return 0;
         }
 

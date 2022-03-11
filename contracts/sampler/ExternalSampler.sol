@@ -20,17 +20,15 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-contract ExternalSampler
-{
+contract ExternalSampler {
     function sampleSellsFromExternal(
         address providerAddress,
         bytes memory callData
-    )
-        public
-        returns (uint256[] memory)
-    {
-        (bool success, bytes memory result) = address(providerAddress).call(callData);
-        if(!success){
+    ) public returns (uint256[] memory) {
+        (bool success, bytes memory result) = address(providerAddress).call(
+            callData
+        );
+        if (!success) {
             return new uint256[](0);
         }
         uint256[] memory makerTokenAmounts = abi.decode(result, (uint256[]));

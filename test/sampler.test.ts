@@ -149,7 +149,7 @@ describe('test quote provider', () => {
 
   test.only('test uniswapv3 sample', async () => {
     const fillAmounts = [
-      ethers.utils.parseUnits('1000', 18),
+      ethers.utils.parseUnits('2960', 18),
       ethers.utils.parseUnits('3000', 18),
     ];
 
@@ -168,14 +168,10 @@ describe('test quote provider', () => {
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
     // await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
-    test('test kyber sample', async ()=>{
-    });
+  test('test kyber sample', async () => {});
 
-    test('test bancor sample', async ()=>{
-    });
+  test('test bancor sample', async () => {});
 
-    test('test balancerv1 sample', async ()=>{
-    });
-    test('test native order sample', async ()=>{
-    });
+  test('test balancerv1 sample', async () => {});
+  test('test native order sample', async () => {});
 });

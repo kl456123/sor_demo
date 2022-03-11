@@ -1,8 +1,8 @@
 import _ from 'lodash';
 
-import { ChainId, Protocol } from '../src/types';
-import { RawPoolProvider } from '../src/rawpool_provider';
 import { TOKENS } from '../src/base_token';
+import { RawPoolProvider } from '../src/rawpool_provider';
+import { ChainId, Protocol } from '../src/types';
 
 jest.setTimeout(100000);
 
@@ -21,10 +21,17 @@ describe('RawPoolProvider Test', () => {
     ];
     for (const protocol of protocols) {
       const rawPools = await rawPoolProvider.getRawPools([protocol]);
-      const newRawPools = _(rawPools).uniqBy(rawPool=>rawPool.id).value();
+      const newRawPools = _(rawPools)
+        .uniqBy(rawPool => rawPool.id)
+        .value();
       expect(rawPools.length).toBeGreaterThan(0);
       expect(rawPools.length).toEqual(newRawPools.length);
-      console.log(rawPoolProvider.getPoolAddressByString(tokens.USDT.address, tokens.USDC.address));
+      console.log(
+        rawPoolProvider.getPoolAddressByString(
+          tokens.USDT.address,
+          tokens.USDC.address
+        )
+      );
     }
   });
 

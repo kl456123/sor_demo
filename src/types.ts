@@ -49,12 +49,6 @@ export enum Protocol {
   Kyber = 'Kyber',
   MakerPSM = 'MakerPSM',
 
-  // difference uniswapv3 by fee amounts
-  UniswapV3_LOWEST = 'Uniswap_V3_LOWEST',
-  UniswapV3_LOW = 'Uniswap_V3_LOW',
-  UniswapV3_MEDIUM = 'Uniswap_V3_MEDIUM',
-  UniswapV3_HIGH = 'Uniswap_V3_HIGH',
-
   // BSC only
   PancakeSwapV2 = 'PancakeSwap_V2',
   BakerySwap = 'BakerySwap',
@@ -63,8 +57,6 @@ export enum Protocol {
   QuickSwap = 'QuickSwap',
   // need to determined lately
   Unknow = 'Unknow',
-
-  
 }
 
 // subgraph to fetch pools for specific sources

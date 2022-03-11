@@ -58,6 +58,30 @@ const UNI_MAINNET = new Token({
   name: 'Uniswap',
 });
 
+const AAVE_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
+  decimals: 18,
+  symbol: 'AAVE',
+  name: 'aave',
+});
+
+const YFI_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e',
+  decimals: 18,
+  symbol: 'YFI',
+  name: 'yearn.finance',
+});
+
+const AVAX_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0x1ce0c2827e2ef14d5c4f29a091d735a204794041',
+  symbol: 'AVAX',
+  name: 'Binance-Peg Avalanche Token',
+  decimals: 18,
+});
+
 export const WETH9: { [chainId in ChainId]?: Token } = {
   [ChainId.MAINNET]: WETH_MAINNET,
 };
@@ -82,6 +106,9 @@ export const TOKENS: { [chainId in ChainId]?: { [symbol: string]: Token } } = {
     WETH: WETH_MAINNET,
     MATIC: MATIC_MAINNET,
     UNI: UNI_MAINNET,
+    AAVE: AAVE_MAINNET,
+    AVAX: AVAX_MAINNET,
+    YFI: YFI_MAINNET,
   },
 };
 

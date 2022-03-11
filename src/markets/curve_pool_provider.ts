@@ -1,19 +1,13 @@
-import _ from 'lodash';
-import fs from 'fs';
-import path from 'path';
-
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
-
-
+import _ from 'lodash';
 
 import { Token } from '../entities';
 import { IRawPoolProvider } from '../rawpool_provider';
-import { RawPool, RawToken } from '../types';
+import { ChainId, ProviderConfig, RawPool, RawToken } from '../types';
 
 import { CurveInfo, MAINNET_CURVE_INFOS } from './curve';
-import { ChainId, ProviderConfig } from '../types';
 
 export class CurvePoolProvider implements IRawPoolProvider {
   public async getPools(): Promise<RawPool[]> {
@@ -33,9 +27,6 @@ export class CurvePoolProvider implements IRawPoolProvider {
   }
 }
 
-
-
-
 const PAGE_SIZE = 1000;
 const threshold = 10000;
 
@@ -44,20 +35,22 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
     'https://api.thegraph.com/subgraphs/name/blocklytics/curve',
 };
 
-type TokenBalance = {token: {
+type TokenBalance = {
+  token: {
     id: string;
     symbol: string;
   };
   underlyingToken: {
     id: string;
     symbol: string;
-  }};
+  };
+};
 
 // raw pools is only used in curve subgraph
 type RawSubgraphPool = {
   id: string;
   tokenBalances: TokenBalance[];
-  totalUnderlyingVolumeDecimal:string;
+  totalUnderlyingVolumeDecimal: string;
 };
 
 export class CurveSubgraphPoolProvider implements IRawPoolProvider {
@@ -185,11 +178,14 @@ export class CurveSubgraphPoolProvider implements IRawPoolProvider {
 
 const filterPools = (pools: RawSubgraphPool[], protocol: string): RawPool[] => {
   return pools
-    .filter(pool => parseFloat(pool.totalUnderlyingVolumeDecimal) > threshold)
+    .filter(pool => parseFloat(pool.totalUnderlyingVolumeDecimal) > 0)
     .map(pool => ({
       id: pool.id.toLowerCase(),
-      tokens: pool.tokenBalances.map(tokenBalance=>{
-        return {address: tokenBalance.underlyingToken.id, symbol: tokenBalance.underlyingToken.symbol};
+      tokens: pool.tokenBalances.map(tokenBalance => {
+        return {
+          address: tokenBalance.underlyingToken.id,
+          symbol: tokenBalance.underlyingToken.symbol,
+        };
       }),
       reserve: parseFloat(pool.totalUnderlyingVolumeDecimal),
       protocol,

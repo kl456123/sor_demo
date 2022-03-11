@@ -4,7 +4,7 @@ import { Token } from '../entities';
 import { IRawPoolProvider } from '../rawpool_provider';
 import { RawPool, RawToken } from '../types';
 
-import { CurveInfo, CURVE_V2_MAINNET_INFOS } from './curve';
+import { CURVE_V2_MAINNET_INFOS, CurveInfo } from './curve';
 
 export class CurveV2PoolProvider implements IRawPoolProvider {
   public async getPools(): Promise<RawPool[]> {

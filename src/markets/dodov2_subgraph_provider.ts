@@ -3,18 +3,16 @@ import Timeout from 'await-timeout';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
-
 import { Token } from '../entities';
+import { logger } from '../logging';
 import { IRawPoolProvider } from '../rawpool_provider';
 import { ChainId, ProviderConfig, RawPool } from '../types';
 
 const PAGE_SIZE = 1000;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
-  [ChainId.MAINNET]:
-    'https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2',
-  [ChainId.BSC]:
-    'https://pq.hg.network/subgraphs/name/dodoex-v2-bsc/bsc',
+  [ChainId.MAINNET]: 'https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2',
+  [ChainId.BSC]: 'https://pq.hg.network/subgraphs/name/dodoex-v2-bsc/bsc',
 };
 
 // raw pools is only used in dodov2 subgraph
@@ -61,7 +59,7 @@ export class DODOV2SubgraphPoolProvider implements IRawPoolProvider {
     query getPools($pageSize: Int!, $id: String){
     pairs(first: $pageSize
     ${blockNumber ? `block: {number: ${blockNumber} }` : ''}
-    where: {id_gt: $id}
+    where: {id_gt: $id, untrackedBaseVolume_gt:0, untrackedQuoteVolume_gt:0}
     ){
     id
     baseToken {id,  symbol}
@@ -144,20 +142,30 @@ export class DODOV2SubgraphPoolProvider implements IRawPoolProvider {
 
     // postprocess
     const poolsSanitized: RawPool[] = filterPools(pools, 'DODOV2');
+    logger.info(
+      `Got ${pools.length} DODOV2 pools from the subgraph. ${poolsSanitized.length} after filtering`
+    );
 
     return poolsSanitized;
   }
 }
 
 const filterPools = (pools: RawSubgraphPool[], protocol: string): RawPool[] => {
-  return pools
-    .map(pool => ({
-      id: pool.id.toLowerCase(),
-      tokens: [
-        { address: pool.baseToken.id.toLowerCase(), symbol: pool.baseToken.symbol },
-        { address: pool.quoteToken.id.toLowerCase(), symbol: pool.quoteToken.symbol },
-      ],
-      reserve: parseFloat(pool.untrackedBaseVolume)+parseFloat(pool.untrackedQuoteVolume),
-      protocol,
-    }));
+  return pools.map(pool => ({
+    id: pool.id.toLowerCase(),
+    tokens: [
+      {
+        address: pool.baseToken.id.toLowerCase(),
+        symbol: pool.baseToken.symbol,
+      },
+      {
+        address: pool.quoteToken.id.toLowerCase(),
+        symbol: pool.quoteToken.symbol,
+      },
+    ],
+    reserve:
+      parseFloat(pool.untrackedBaseVolume) +
+      parseFloat(pool.untrackedQuoteVolume),
+    protocol,
+  }));
 };

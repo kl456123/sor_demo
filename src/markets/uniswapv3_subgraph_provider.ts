@@ -63,7 +63,7 @@ export class UniswapV3SubgraphPoolProvider implements IRawPoolProvider {
         pools(
           first: $pageSize
           ${blockNumber ? `block: { number: ${blockNumber} }` : ``}
-          where: { id_gt: $id }
+          where: { id_gt: $id, liquidity_gt:0 }
         ) {
           id
           token0 {
@@ -153,23 +153,21 @@ export class UniswapV3SubgraphPoolProvider implements IRawPoolProvider {
       }
     );
 
-    const poolsSanitized = pools
-      .filter(pool => parseInt(pool.liquidity) > 0)
-      .map(pool => {
-        const { totalValueLockedUSD } = pool;
+    const poolsSanitized = pools.map(pool => {
+      const { totalValueLockedUSD } = pool;
 
-        const tokens = [
-          { address: pool.token0.id.toLowerCase(), symbol: pool.token0.symbol },
-          { address: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
-        ];
-        return {
-          protocol: 'Uniswap_V3',
-          id: pool.id.toLowerCase(),
-          tokens,
-          reserve: parseFloat(totalValueLockedUSD),
-          poolData: { feeTier: pool.feeTier },
-        };
-      });
+      const tokens = [
+        { address: pool.token0.id.toLowerCase(), symbol: pool.token0.symbol },
+        { address: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
+      ];
+      return {
+        protocol: 'Uniswap_V3',
+        id: pool.id.toLowerCase(),
+        tokens,
+        reserve: parseFloat(totalValueLockedUSD),
+        poolData: { feeTier: pool.feeTier },
+      };
+    });
 
     logger.info(
       `Got ${pools.length} V3 pools from the subgraph. ${poolsSanitized.length} after filtering`

@@ -25,10 +25,12 @@ export class Composer {
       const numHops = routes[0].pools.length;
       const batchRoutes: BatchRoute[] = [];
       for (let i = 0; i < numHops; ++i) {
-        const pools = _(routes)
+        const allPools = _(routes)
           .map(route => route.pools[i])
           .uniqBy(pool => pool.id)
           .value();
+        // topn
+        const pools = _(allPools).slice(0, 5).value();
         // the same input tokens and output tokens for each route here
         const inputToken = routes[0].path[i];
         const outputToken = routes[0].path[i + 1];

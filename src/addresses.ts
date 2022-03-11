@@ -1,14 +1,14 @@
 import { constants, utils } from 'ethers';
 
-import { ChainId, Protocol } from './types';
 import { WETH9 } from './base_token';
+import { ChainId, Protocol } from './types';
 
 // use contracts from 0x protocol for more liquidity sources
 export const contractAddressesByChain: {
   [chainId in ChainId]?: { [name: string]: string };
 } = {
   [ChainId.MAINNET]: {
-      quoter: '0xE9BBD6eC0c9Ca71d3DcCD1282EE9de4F811E50aF',
+    quoter: '0xE9BBD6eC0c9Ca71d3DcCD1282EE9de4F811E50aF',
     // quoter: '0xd8c38704c9937ea3312de29f824b4ad3450a5e61',
     swapper: '0xdef1c0ded9bec7f1a1670819833240f027b25eff',
   },
@@ -73,7 +73,8 @@ export const BALANCER_V2_SUBGRAPH_URL_BY_CHAIN: valueByChain<string> = {
     'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-v2',
 };
 
-export const BALANCER_SUBGRAPH_URL = 'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer';
+export const BALANCER_SUBGRAPH_URL =
+  'https://api.thegraph.com/subgraphs/name/balancer-labs/balancer';
 
 export const DODOV1_CONFIG_BY_CHAIN_ID: valueByChain<{
   helper: string;
@@ -108,29 +109,30 @@ export const UNISWAPV3_CONFIG_BY_CHAIN_ID: valueByChain<{
 };
 
 export const KYBER_CONFIG_BY_CHAIN_ID: valueByChain<{
-    networkProxy: string,
-    hintHandler:string,
-    weth:string
+  networkProxy: string;
+  hintHandler: string;
+  weth: string;
 }> = {
-          [ChainId.MAINNET]: {
-              networkProxy: '0x9aab3f75489902f3a48495025729a0af77d4b11e',
-              hintHandler: '0xa1C0Fa73c39CFBcC11ec9Eb1Afc665aba9996E2C',
-              weth: WETH9[ChainId.MAINNET]!.address,
-          },
-      };
+  [ChainId.MAINNET]: {
+    networkProxy: '0x9aab3f75489902f3a48495025729a0af77d4b11e',
+    hintHandler: '0xa1C0Fa73c39CFBcC11ec9Eb1Afc665aba9996E2C',
+    weth: WETH9[ChainId.MAINNET]!.address,
+  },
+};
 
+export const BANCOR_REGISTRY_BY_CHAIN_ID: valueByChain<string> = {
+  [ChainId.MAINNET]: '0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4',
+};
 
-export const BANCOR_REGISTRY_BY_CHAIN_ID : valueByChain<string> =
-      {
-                [ChainId.MAINNET]: '0x52Ae12ABe5D8BD778BD5397F99cA900624CfADD4',
-            };
-
-export const MAKER_PSM_INFO_BY_CHAIN_ID : valueByChain<{gemTokenAddress:string, ilkIdentifier:string, psmAddress:string}> =
-      {
-          [ChainId.MAINNET]: {
-              // Currently only USDC is supported
-              gemTokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-              ilkIdentifier: utils.formatBytes32String('PSM-USDC-A'),
-              psmAddress: '0x89b78cfa322f6c5de0abceecab66aee45393cc5a',
-          },
-      };
+export const MAKER_PSM_INFO_BY_CHAIN_ID: valueByChain<{
+  gemTokenAddress: string;
+  ilkIdentifier: string;
+  psmAddress: string;
+}> = {
+  [ChainId.MAINNET]: {
+    // Currently only USDC is supported
+    gemTokenAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    ilkIdentifier: utils.formatBytes32String('PSM-USDC-A'),
+    psmAddress: '0x89b78cfa322f6c5de0abceecab66aee45393cc5a',
+  },
+};

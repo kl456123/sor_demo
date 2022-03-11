@@ -13,14 +13,14 @@ import {
 
 import {
   BALANCER_V2_VAULT_ADDRESS_BY_CHAIN,
+  BANCOR_REGISTRY_BY_CHAIN_ID,
   contractAddressesByChain,
   DODOV1_CONFIG_BY_CHAIN_ID,
   DODOV2_FACTORIES_BY_CHAIN_ID,
+  KYBER_CONFIG_BY_CHAIN_ID,
+  MAKER_PSM_INFO_BY_CHAIN_ID,
   uniswapV2RouterByChain,
   UNISWAPV3_CONFIG_BY_CHAIN_ID,
-  KYBER_CONFIG_BY_CHAIN_ID,
-  BANCOR_REGISTRY_BY_CHAIN_ID,
-  MAKER_PSM_INFO_BY_CHAIN_ID,
 } from './addresses';
 import { DirectSwapRoute } from './entitiesv2';
 import { logger } from './logging';
@@ -52,7 +52,7 @@ export type SamplerContractOption<TFunctionParams> = {
   contractInterface: Interface;
   functionName: string;
   functionParams?: TFunctionParams;
-  callback?: (callResults: string)=>BigNumber[];
+  callback?: (callResults: string) => BigNumber[];
 };
 
 export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
@@ -81,14 +81,14 @@ export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
   }
 
   public handleCallResults(callResults: string): BigNumber[] {
-      if(this.callback!==undefined){
-          return this.callback(callResults);
-      }
-      const fragment = this.contractInterface.getFunction(this.functionName);
-        return this.contractInterface.decodeFunctionResult(
-        fragment,
-        callResults
-        )[0] as unknown as BigNumber[];
+    if (this.callback !== undefined) {
+      return this.callback(callResults);
+    }
+    const fragment = this.contractInterface.getFunction(this.functionName);
+    return this.contractInterface.decodeFunctionResult(
+      fragment,
+      callResults
+    )[0] as unknown as BigNumber[];
   }
   public handleRevert(callResults: string): BigNumber[] {
     const msg = this.contractInterface
@@ -257,14 +257,14 @@ export class SamplerOperation {
         makerToken,
         takerFillAmounts,
       ],
-        callback: (callResults):BigNumber[]=>{
-        const fragment = this.contractInterface.getFunction('sampleSellsFromDODO');
-        const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
-        fragment,
-        callResults
+      callback: (callResults): BigNumber[] => {
+        const fragment = this.contractInterface.getFunction(
+          'sampleSellsFromDODO'
         );
+        const [_isSellBase, _pool, samples] =
+          this.contractInterface.decodeFunctionResult(fragment, callResults);
         return samples;
-        }
+      },
     });
   }
 
@@ -285,60 +285,73 @@ export class SamplerOperation {
         makerToken,
         makerFillAmounts,
       ],
-     callback: (callResults):BigNumber[]=>{
-        const fragment = this.contractInterface.getFunction('sampleBuysFromDODO');
-        const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
-        fragment,
-        callResults
-        );
+      callback: (callResults): BigNumber[] => {
+        const fragment =
+          this.contractInterface.getFunction('sampleBuysFromDODO');
+        const [_isSellBase, _pool, samples] =
+          this.contractInterface.decodeFunctionResult(fragment, callResults);
         return samples;
-        }
+      },
     });
   }
 
-public getDODOV2SellQuotes(
-          registry: string,
-          offset: number,
-          makerToken: string,
-          takerToken: string,
-          takerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.DODOV2,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleSellsFromDODOV2',
-              functionParams: [registry, offset, takerToken, makerToken, takerFillAmounts],
-            callback: (callResults: string): BigNumber[] => {
-                  const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
-                    'sampleSellsFromDODOV2',
-                    callResults
-                );
-                  return samples;
-              },
-          });
-      }
+  public getDODOV2SellQuotes(
+    registry: string,
+    offset: number,
+    makerToken: string,
+    takerToken: string,
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.DODOV2,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromDODOV2',
+      functionParams: [
+        registry,
+        offset,
+        takerToken,
+        makerToken,
+        takerFillAmounts,
+      ],
+      callback: (callResults: string): BigNumber[] => {
+        const [_isSellBase, _pool, samples] =
+          this.contractInterface.decodeFunctionResult(
+            'sampleSellsFromDODOV2',
+            callResults
+          );
+        return samples;
+      },
+    });
+  }
 
-      public getDODOV2BuyQuotes(
-          registry: string,
-          offset: number,
-          makerToken: string,
-          takerToken: string,
-          makerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.DODOV2,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleBuysFromDODOV2',
-              functionParams: [registry, offset, takerToken, makerToken, makerFillAmounts],
-              callback: (callResults: string): BigNumber[] => {
-                  const [_isSellBase, _pool, samples] = this.contractInterface.decodeFunctionResult(
-                    'sampleBuysFromDODOV2',
-                    callResults
-                );
-                  return samples;
-              },
-          });
-      }
+  public getDODOV2BuyQuotes(
+    registry: string,
+    offset: number,
+    makerToken: string,
+    takerToken: string,
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.DODOV2,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromDODOV2',
+      functionParams: [
+        registry,
+        offset,
+        takerToken,
+        makerToken,
+        makerFillAmounts,
+      ],
+      callback: (callResults: string): BigNumber[] => {
+        const [_isSellBase, _pool, samples] =
+          this.contractInterface.decodeFunctionResult(
+            'sampleBuysFromDODOV2',
+            callResults
+          );
+        return samples;
+      },
+    });
+  }
 
   public getUniswapV3SellQuotes(
     quoter: string,
@@ -392,132 +405,159 @@ public getDODOV2SellQuotes(
   }
 
   public getBalancerSellQuotes(
-          poolAddress: string,
-          makerToken: string,
-          takerToken: string,
-          takerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Balancer,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleSellsFromBalancer',
-              functionParams: [poolAddress, takerToken, makerToken, takerFillAmounts],
-          });
-      }
+    poolAddress: string,
+    makerToken: string,
+    takerToken: string,
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Balancer,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromBalancer',
+      functionParams: [poolAddress, takerToken, makerToken, takerFillAmounts],
+    });
+  }
 
-      public getBalancerBuyQuotes(
-          poolAddress: string,
-          makerToken: string,
-          takerToken: string,
-          makerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Balancer,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleBuysFromBalancer',
-              functionParams: [poolAddress, takerToken, makerToken, makerFillAmounts],
-          });
-      }
+  public getBalancerBuyQuotes(
+    poolAddress: string,
+    makerToken: string,
+    takerToken: string,
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Balancer,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromBalancer',
+      functionParams: [poolAddress, takerToken, makerToken, makerFillAmounts],
+    });
+  }
 
-public getBancorSellQuotes(
-          registry: string,
-          makerToken: string,
-          takerToken: string,
-          paths: string[][],
-          takerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Bancor,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleSellsFromBancor',
-              functionParams: [{ registry, paths }, takerToken, makerToken, takerFillAmounts],
-          });
-      }
+  public getBancorSellQuotes(
+    registry: string,
+    makerToken: string,
+    takerToken: string,
+    paths: string[][],
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Bancor,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromBancor',
+      functionParams: [
+        { registry, paths },
+        takerToken,
+        makerToken,
+        takerFillAmounts,
+      ],
+    });
+  }
 
-      // Unimplemented
-      public getBancorBuyQuotes(
-          registry: string,
-          makerToken: string,
-          takerToken: string,
-          paths: string[][],
-          makerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Bancor,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleBuysFromBancor',
-              functionParams: [{ registry, paths }, takerToken, makerToken, makerFillAmounts],
-          });
-      }
-
+  // Unimplemented
+  public getBancorBuyQuotes(
+    registry: string,
+    makerToken: string,
+    takerToken: string,
+    paths: string[][],
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Bancor,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromBancor',
+      functionParams: [
+        { registry, paths },
+        takerToken,
+        makerToken,
+        makerFillAmounts,
+      ],
+    });
+  }
 
   public getMakerPsmSellQuotes(
-          psmAddress: string,
-          ilkIdentifier: string,
-          gemTokenAddress: string,
-          makerToken: string,
-          takerToken: string,
-          takerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.MakerPSM,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleSellsFromMakerPsm',
-              functionParams: [{psmAddress, ilkIdentifier, gemTokenAddress}, takerToken, makerToken, takerFillAmounts],
-          });
-      }
+    psmAddress: string,
+    ilkIdentifier: string,
+    gemTokenAddress: string,
+    makerToken: string,
+    takerToken: string,
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.MakerPSM,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromMakerPsm',
+      functionParams: [
+        { psmAddress, ilkIdentifier, gemTokenAddress },
+        takerToken,
+        makerToken,
+        takerFillAmounts,
+      ],
+    });
+  }
 
-      public getMakerPsmBuyQuotes(
-          psmAddress: string,
-          ilkIdentifier: string,
-          gemTokenAddress: string,
-          makerToken: string,
-          takerToken: string,
-          makerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.MakerPSM,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleBuysFromMakerPsm',
-              functionParams: [{psmAddress, ilkIdentifier, gemTokenAddress}, takerToken, makerToken, makerFillAmounts],
-          });
-      }
+  public getMakerPsmBuyQuotes(
+    psmAddress: string,
+    ilkIdentifier: string,
+    gemTokenAddress: string,
+    makerToken: string,
+    takerToken: string,
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.MakerPSM,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromMakerPsm',
+      functionParams: [
+        { psmAddress, ilkIdentifier, gemTokenAddress },
+        takerToken,
+        makerToken,
+        makerFillAmounts,
+      ],
+    });
+  }
 
-      public getKyberSellQuotes(
-          networkProxy: string,
-          hintHandler: string,
-          weth: string,
-          reserveOffset: number,
-          makerToken: string,
-          takerToken: string,
-          takerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Kyber,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleSellsFromKyberNetwork',
-              functionParams: [{networkProxy, hintHandler, weth ,reserveOffset, hint: NULL_BYTES }, takerToken, makerToken, takerFillAmounts],
-          });
-      }
+  public getKyberSellQuotes(
+    networkProxy: string,
+    hintHandler: string,
+    weth: string,
+    reserveOffset: number,
+    makerToken: string,
+    takerToken: string,
+    takerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Kyber,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleSellsFromKyberNetwork',
+      functionParams: [
+        { networkProxy, hintHandler, weth, reserveOffset, hint: NULL_BYTES },
+        takerToken,
+        makerToken,
+        takerFillAmounts,
+      ],
+    });
+  }
 
-      public getKyberBuyQuotes(
-          networkProxy: string,
-          hintHandler: string,
-          weth: string,
-          reserveOffset: BigNumber,
-          makerToken: string,
-          takerToken: string,
-          makerFillAmounts: BigNumber[],
-      ): SourceContractOperation {
-          return new SamplerContractOperation({
-              protocol: Protocol.Kyber,
-              contractInterface: ERC20BridgeSampler__factory.createInterface(),
-              functionName: 'sampleBuysFromKyberNetwork',
-              functionParams: [{networkProxy, hintHandler, weth ,reserveOffset, hint: NULL_BYTES }, takerToken, makerToken, makerFillAmounts],
-          });
-      }
-
-
+  public getKyberBuyQuotes(
+    networkProxy: string,
+    hintHandler: string,
+    weth: string,
+    reserveOffset: BigNumber,
+    makerToken: string,
+    takerToken: string,
+    makerFillAmounts: BigNumber[]
+  ): SourceContractOperation {
+    return new SamplerContractOperation({
+      protocol: Protocol.Kyber,
+      contractInterface: ERC20BridgeSampler__factory.createInterface(),
+      functionName: 'sampleBuysFromKyberNetwork',
+      functionParams: [
+        { networkProxy, hintHandler, weth, reserveOffset, hint: NULL_BYTES },
+        takerToken,
+        makerToken,
+        makerFillAmounts,
+      ],
+    });
+  }
 
   private getSellQuoteOperations(
     amounts: BigNumber[],
@@ -578,18 +618,43 @@ public getBancorSellQuotes(
             amounts
           );
         }
-          case Protocol.Kyber:{
-              return this.getKyberSellQuotes(
-                  route.networkProxy, route.hintHandler, route.weth, route.reserveOffset, route.makerToken, route.takerToken, amounts);
-          }
-          case Protocol.Bancor:{
-              return this.getBancorSellQuotes(route.registry, route.makerToken, route.takerToken, route.paths, amounts);
-          }
-          case Protocol.MakerPSM:{
-              return this.getMakerPsmSellQuotes(route.psmAddress, route.ilkIdentifier, route.gemTokenAddress, route.makerToken, route.takerToken, amounts);
-          }
-        case Protocol.Balancer:{
-            return this.getBalancerSellQuotes(route.poolAddress, route.makerToken, route.takerToken, amounts);
+        case Protocol.Kyber: {
+          return this.getKyberSellQuotes(
+            route.networkProxy,
+            route.hintHandler,
+            route.weth,
+            route.reserveOffset,
+            route.makerToken,
+            route.takerToken,
+            amounts
+          );
+        }
+        case Protocol.Bancor: {
+          return this.getBancorSellQuotes(
+            route.registry,
+            route.makerToken,
+            route.takerToken,
+            route.paths,
+            amounts
+          );
+        }
+        case Protocol.MakerPSM: {
+          return this.getMakerPsmSellQuotes(
+            route.psmAddress,
+            route.ilkIdentifier,
+            route.gemTokenAddress,
+            route.makerToken,
+            route.takerToken,
+            amounts
+          );
+        }
+        case Protocol.Balancer: {
+          return this.getBalancerSellQuotes(
+            route.poolAddress,
+            route.makerToken,
+            route.takerToken,
+            amounts
+          );
         }
         default:
           throw new Error(`Unsupported sell sample protocol: ${protocol}`);
@@ -621,7 +686,10 @@ public getBancorSellQuotes(
       case Protocol.CurveV2:
       case Protocol.Curve: {
         const poolAddress = route.pool.id;
-        const curveInfo = getCurveLikeInfosForPool({poolAddress, protocol: route.pool.protocol});
+        const curveInfo = getCurveLikeInfosForPool({
+          poolAddress,
+          protocol: route.pool.protocol,
+        });
         const tokensAddress = curveInfo.tokens.map(token => token.address);
         const fromTokenIdx = tokensAddress.indexOf(route.input.address);
         const toTokenIdx = tokensAddress.indexOf(route.output.address);
@@ -644,14 +712,14 @@ public getBancorSellQuotes(
           makerToken: route.output.address,
         };
       }
-      case Protocol.Balancer:{
-          return {
-            poolAddress: route.pool.id,
-            makerToken: route.output.address,
-            takerToken: route.input.address,
-            protocol: Protocol.Balancer,
-            };
-        }
+      case Protocol.Balancer: {
+        return {
+          poolAddress: route.pool.id,
+          makerToken: route.output.address,
+          takerToken: route.input.address,
+          protocol: Protocol.Balancer,
+        };
+      }
       case Protocol.DODO: {
         const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
         return {
@@ -673,45 +741,46 @@ public getBancorSellQuotes(
           makerToken: route.output.address,
         };
       }
-        case Protocol.Kyber:{
-            const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId]!;
-            return {
-                protocol:Protocol.Kyber,
-                reserveOffset: 0,
-                hintHandler: opts.hintHandler,
-                networkProxy: opts.networkProxy,
-                weth: opts.weth,
-                hint: '0x',
-                takerToken: route.input.address,
-                makerToken: route.output.address,
-            };
-        }
-        case Protocol.Bancor:{
+      case Protocol.Kyber: {
+        const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId]!;
+        return {
+          protocol: Protocol.Kyber,
+          reserveOffset: 0,
+          hintHandler: opts.hintHandler,
+          networkProxy: opts.networkProxy,
+          weth: opts.weth,
+          hint: '0x',
+          takerToken: route.input.address,
+          makerToken: route.output.address,
+        };
+      }
+      case Protocol.Bancor: {
         const paths: string[][] = [[]];
-            return {
-                protocol: Protocol.Bancor,
-                registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId]!,
-                takerToken: route.input.address,
-                makerToken: route.output.address,
-                paths,
-            };
-        }
-        case Protocol.MakerPSM:{
-        const {psmAddress, gemTokenAddress, ilkIdentifier} = MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId]!;
-            return {
-                protocol: Protocol.MakerPSM,
-                psmAddress,
-                ilkIdentifier,
-                gemTokenAddress,
-                takerToken: route.input.address,
-                makerToken: route.output.address,
-            };
-        }
-        case Protocol.ZeroX:{
-            return {
-                protocol: Protocol.ZeroX
-            };
-        }
+        return {
+          protocol: Protocol.Bancor,
+          registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId]!,
+          takerToken: route.input.address,
+          makerToken: route.output.address,
+          paths,
+        };
+      }
+      case Protocol.MakerPSM: {
+        const { psmAddress, gemTokenAddress, ilkIdentifier } =
+          MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId]!;
+        return {
+          protocol: Protocol.MakerPSM,
+          psmAddress,
+          ilkIdentifier,
+          gemTokenAddress,
+          takerToken: route.input.address,
+          makerToken: route.output.address,
+        };
+      }
+      case Protocol.ZeroX: {
+        return {
+          protocol: Protocol.ZeroX,
+        };
+      }
       default:
         throw new Error(
           `Unsupported fill params protocol: ${route.pool.protocol}`

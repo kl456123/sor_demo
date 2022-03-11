@@ -9,7 +9,7 @@ export type CurveInfo = {
   tokens: Token[];
   sellQuoteFunctionSelector: CurveFunctionSelectors;
   buyQuoteFunctionSelector: CurveFunctionSelectors;
-  exchangeFunctionSelector?:CurveFunctionSelectors;
+  exchangeFunctionSelector?: CurveFunctionSelectors;
 };
 
 const tokens = TOKENS[ChainId.MAINNET]!;
@@ -54,9 +54,9 @@ export enum CurveFunctionSelectors {
 }
 
 export const CURVE_V2_POOLS = {
-      tricrypto: '0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5',
-      tricrypto2: '0xd51a44d3fae010294c616388b506acda1bfaae46',
-      cvxeth: '0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4',
+  tricrypto: '0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5',
+  tricrypto2: '0xd51a44d3fae010294c616388b506acda1bfaae46',
+  cvxeth: '0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4',
 };
 
 export const MAINNET_CURVE_INFOS: Record<string, CurveInfo> = {
@@ -113,41 +113,45 @@ export function getCurveV2InfosForPool(poolAddress: string): CurveInfo {
   return curveInfos[0];
 }
 
-export function getCurveLikeInfosForPool({poolAddress, protocol}:{poolAddress: string, protocol:Protocol}){
-    switch(protocol){
-        case Protocol.CurveV2:{
-            return getCurveV2InfosForPool(poolAddress);
-        }
-        case Protocol.Curve:{
-            return getCurveInfosForPool(poolAddress);
-        }
-        default:
-            throw new Error(`unknown protocol: ${protocol}`);
+export function getCurveLikeInfosForPool({
+  poolAddress,
+  protocol,
+}: {
+  poolAddress: string;
+  protocol: Protocol;
+}) {
+  switch (protocol) {
+    case Protocol.CurveV2: {
+      return getCurveV2InfosForPool(poolAddress);
     }
+    case Protocol.Curve: {
+      return getCurveInfosForPool(poolAddress);
+    }
+    default:
+      throw new Error(`unknown protocol: ${protocol}`);
+  }
 }
 
-
 export const CURVE_V2_MAINNET_INFOS: { [name: string]: CurveInfo } = {
-      [CURVE_V2_POOLS.tricrypto]: {
-                tokens: [tokens.USDT, tokens.WBTC, tokens.WETH],
-                poolAddress: CURVE_V2_POOLS.tricrypto,
-                exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
-                sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
-                buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-            },
-      [CURVE_V2_POOLS.tricrypto2]: {
-                tokens: [tokens.USDT, tokens.WBTC, tokens.WETH],
-                poolAddress: CURVE_V2_POOLS.tricrypto2,
-                exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
-                sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
-                buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-            },
-    [CURVE_V2_POOLS.cvxeth]:{
-        tokens: [tokens.WETH, CRV],
-        poolAddress:CURVE_V2_POOLS.cvxeth,
-        exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
-        sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
-        buyQuoteFunctionSelector: CurveFunctionSelectors.None,
-
-    },
-  };
+  [CURVE_V2_POOLS.tricrypto]: {
+    tokens: [tokens.USDT, tokens.WBTC, tokens.WETH],
+    poolAddress: CURVE_V2_POOLS.tricrypto,
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+  },
+  [CURVE_V2_POOLS.tricrypto2]: {
+    tokens: [tokens.USDT, tokens.WBTC, tokens.WETH],
+    poolAddress: CURVE_V2_POOLS.tricrypto2,
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+  },
+  [CURVE_V2_POOLS.cvxeth]: {
+    tokens: [tokens.WETH, CRV],
+    poolAddress: CURVE_V2_POOLS.cvxeth,
+    exchangeFunctionSelector: CurveFunctionSelectors.exchange_v2,
+    sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_v2,
+    buyQuoteFunctionSelector: CurveFunctionSelectors.None,
+  },
+};

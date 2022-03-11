@@ -1,18 +1,22 @@
+import fs from 'fs';
+import path from 'path';
+
 import _ from 'lodash';
 import NodeCache from 'node-cache';
 
+import { globalBlacklist } from './blacklist';
 import { PROTOCOLSTRMAP } from './constants';
 import { Token, TokenAmount } from './entities';
 import { PoolV2 as Pool } from './entitiesv2';
 import { logger } from './logging';
+import { BalancerPoolProvider } from './markets/balancer_subgraph_provider';
 import { BalancerV2PoolProvider } from './markets/balancerv2_subgraph_provider';
 import { CurvePoolProvider } from './markets/curve_pool_provider';
+import { CurveV2PoolProvider } from './markets/curvev2_pool_provider';
+import { DODOPoolProvider } from './markets/dodo_provider';
+import { DODOV2SubgraphPoolProvider } from './markets/dodov2_subgraph_provider';
 import { UniswapV2StaticFileSubgraphProvider } from './markets/uniswapv2_subgraph_provider';
 import { UniswapV3SubgraphPoolProvider } from './markets/uniswapv3_subgraph_provider';
-import { DODOV2SubgraphPoolProvider } from './markets/dodov2_subgraph_provider';
-import { DODOPoolProvider } from './markets/dodo_provider';
-import { CurveV2PoolProvider } from './markets/curvev2_pool_provider';
-import { BalancerPoolProvider } from './markets/balancer_subgraph_provider';
 import { ChainId, Protocol, ProviderConfig, RawPool } from './types';
 
 export interface IRawPoolProvider {
@@ -41,6 +45,7 @@ export class RawPoolProvider {
   protected dodoPoolProvider: IRawPoolProvider;
   protected balancerPoolProvider: IRawPoolProvider;
   private nodecache: NodeCache;
+  protected blacklist: string[];
   constructor(public readonly chainId: ChainId) {
     this.uniswapV2SubgraphPoolProvider =
       new UniswapV2StaticFileSubgraphProvider();
@@ -51,10 +56,16 @@ export class RawPoolProvider {
     this.uniswapV3SubgraphPoolProvider = new UniswapV3SubgraphPoolProvider(
       chainId
     );
-      this.dodoV2PoolProvider = new DODOV2SubgraphPoolProvider(chainId);
-      this.dodoPoolProvider = new DODOPoolProvider();
-      this.curveV2PoolProvider = new CurveV2PoolProvider();
+    this.dodoV2PoolProvider = new DODOV2SubgraphPoolProvider(chainId);
+    this.dodoPoolProvider = new DODOPoolProvider();
+    this.curveV2PoolProvider = new CurveV2PoolProvider();
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
+
+    // blacklist
+    this.blacklist = JSON.parse(
+      fs.readFileSync(path.resolve(__dirname, '../data/blacklist.json'), 'utf8')
+    ) as string[];
+    this.blacklist.forEach(t => globalBlacklist().add(t));
   }
 
   public async getRawPools(protocols: Protocol[]): Promise<RawPool[]> {
@@ -78,17 +89,17 @@ export class RawPoolProvider {
           poolsFetchPromises.push(this.balancerV2PoolProvider.getPools());
           break;
         case Protocol.DODOV2:
-              poolsFetchPromises.push(this.dodoV2PoolProvider.getPools());
-              break;
-          case Protocol.DODO:
-            poolsFetchPromises.push(this.dodoPoolProvider.getPools());
-              break;
-          case Protocol.CurveV2:
-            poolsFetchPromises.push(this.curveV2PoolProvider.getPools());
-              break;
-          case Protocol.Balancer:
-            poolsFetchPromises.push(this.balancerPoolProvider.getPools());
-              break;
+          poolsFetchPromises.push(this.dodoV2PoolProvider.getPools());
+          break;
+        case Protocol.DODO:
+          poolsFetchPromises.push(this.dodoPoolProvider.getPools());
+          break;
+        case Protocol.CurveV2:
+          poolsFetchPromises.push(this.curveV2PoolProvider.getPools());
+          break;
+        case Protocol.Balancer:
+          poolsFetchPromises.push(this.balancerPoolProvider.getPools());
+          break;
         default:
           throw new Error(
             `unsupported protocol: ${protocol} when get rawPools!`
@@ -97,31 +108,37 @@ export class RawPoolProvider {
     }
 
     const poolsFetch = await Promise.all(poolsFetchPromises);
-    const allRawPools: RawPool[] = _.flatMap(poolsFetch);
+    const allRawPools: RawPool[] = _.flatMap(poolsFetch).filter(
+      rawPool => !this.blacklist.includes(rawPool.id)
+    );
 
     // cache
     const tokensTopool: Record<string, string[]> = {};
     _.forEach(allRawPools, rawPool => {
-        const tokens = rawPool.tokens;
-        const tokenPairs = _.flatMap(tokens, tokenA =>
+      const tokens = rawPool.tokens;
+      const tokenPairs = _.flatMap(tokens, tokenA =>
         tokens.map(tokenB => [tokenA!, tokenB!])
-      ).filter(([tokenA, tokenB]) => !(tokenA.address===tokenB.address));
+      ).filter(([tokenA, tokenB]) => !(tokenA.address === tokenB.address));
 
-        _.forEach(tokenPairs, (tokens) => {
-            const key = RawPoolProvider.calcCacheKeyByString(tokens[0].address, tokens[1].address, this.chainId);
-            if (!tokensTopool[key]) {
-            tokensTopool[key] = [];
-            }
-            tokensTopool[key].push(rawPool.id);
-        });
+      _.forEach(tokenPairs, tokens => {
+        const key = RawPoolProvider.calcCacheKeyByString(
+          tokens[0].address,
+          tokens[1].address,
+          this.chainId
+        );
+        if (!tokensTopool[key]) {
+          tokensTopool[key] = [];
+        }
+        tokensTopool[key].push(rawPool.id);
+      });
     });
     _.map(tokensTopool, (pools, key) => {
-        if(this.nodecache.has(key)){
-            const oldPools = this.nodecache.get<string[]>(key)!;
-            pools.concat(oldPools);
-        }
-        pools = _(pools).compact().uniq().value();
-        this.nodecache.set(key, pools);
+      if (this.nodecache.has(key)) {
+        const oldPools = this.nodecache.get<string[]>(key)!;
+        pools.concat(oldPools);
+      }
+      pools = _(pools).compact().uniq().value();
+      this.nodecache.set(key, pools);
     });
     return allRawPools;
   }
@@ -138,13 +155,13 @@ export class RawPoolProvider {
       for (const token of tokens) {
         if (!token) {
           logger.info(`Dropping candidate pool for ${rawPool.id}`);
-            skip = true;
+          skip = true;
           break;
         }
       }
-        if(skip){
-            continue;
-        }
+      if (skip) {
+        continue;
+      }
       const tokensAmount = tokens.map(token => new TokenAmount(token!, 10));
       const pool = new Pool(
         tokensAmount,

@@ -2,6 +2,7 @@ import { BigNumber } from 'ethers';
 import _ from 'lodash';
 import { Queue } from 'mnemonist';
 
+import { globalBlacklist } from './blacklist';
 import { TokenAmount } from './entities';
 import {
   BatchRoute,
@@ -107,6 +108,7 @@ export async function postprocess(
     // );
     // const gasCostInToken = estimateGasCost(directSwapRoute);
     let quoteAdjustedForGas;
+    let skip = true;
 
     for (let i = 0; i < quotes.length; ++i) {
       const amountQuote = quotes[i];
@@ -114,13 +116,14 @@ export async function postprocess(
       const { quote, amount } = amountQuote;
       // skip if no quote
       if (!quote || quote.lte(0)) {
-        logger.warn(
+        logger.debug(
           `Dropping a null quote ${amount.toString()} for ${
             directSwapRoute.output.symbol
           } in ${directSwapRoute.pool.protocol}(${directSwapRoute.pool.id}).`
         );
         continue;
       }
+      skip = false;
 
       const quoteAmount = new TokenAmount(outputToken, quote);
       // if (tradeType === TradeType.EXACT_INPUT) {
@@ -145,6 +148,10 @@ export async function postprocess(
       });
 
       allRoutesWithValidQuotes.push(routeWithValidQuote);
+    }
+
+    if (skip) {
+      globalBlacklist().add(directSwapRoute.pool.id);
     }
   }
 
