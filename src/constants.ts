@@ -22,7 +22,7 @@ export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
 
 // TODO (change hardcode style)
 export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
-  Uniswap_V2: Protocol.UniswapV2,
+  UniswapV2: Protocol.UniswapV2,
   SushiSwap: Protocol.SushiSwap,
   Eth2Dai: Protocol.Eth2Dai,
   ZeroX: Protocol.ZeroX,

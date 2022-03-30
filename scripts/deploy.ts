@@ -29,6 +29,26 @@ async function main() {
   // await quoter.deployed();
   // console.log("Quoter deployed to:", quoter.address);
 
+
+  // deploy bridge adapter
+  const BridgeAdapter = await ethers.getContractFactory('BridgeAdapter');
+  const weth = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';// different for diferent network
+  const bridgeAdapter = await BridgeAdapter.deploy(weth);
+  await bridgeAdapter.deployed();
+  console.log(`BridgeAdapter deployed to: ${bridgeAdapter.address}`)
+
+  // Swapper
+  const Swapper = await ethers.getContractFactory('Swapper');
+  const swapper = await Swapper.deploy();
+  await swapper.deployed();
+  console.log(`Swapper deployed to: ${swapper.address}`);
+
+  // FillQuoteTransformer
+  const FillQuoteTransformer = await ethers.getContractFactory('FillQuoteTransformer');
+  const zeroX = ethers.constants.AddressZero;
+  const fillQuoteTransformer = await FillQuoteTransformer.deploy(bridgeAdapter.address, zeroX);
+  await fillQuoteTransformer.deployed();
+  console.log(`FillQuoteTransformer deployed to: ${fillQuoteTransformer.address}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

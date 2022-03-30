@@ -9,7 +9,7 @@ import _ from 'lodash';
 
 import { Token } from '../entities';
 import { IRawPoolProvider } from '../rawpool_provider';
-import { ChainId, ProviderConfig, RawPool } from '../types';
+import { ChainId, ProviderConfig, RawPool, Protocol } from '../types';
 
 const PAGE_SIZE = 1000;
 const threshold = 0.025;
@@ -150,7 +150,7 @@ export class UniswapV2SubgraphPoolProvider implements IRawPoolProvider {
     );
 
     // postprocess
-    const poolsSanitized: RawPool[] = filterPools(pools, 'Uniswap_V2');
+    const poolsSanitized: RawPool[] = filterPools(pools, Protocol.UniswapV2);
 
     return poolsSanitized;
   }
@@ -164,7 +164,7 @@ export class UniswapV2StaticFileSubgraphProvider implements IRawPoolProvider {
         'utf8'
       )
     ) as RawSubgraphPool[];
-    return filterPools(poolsSanitized, 'Uniswap_V2');
+    return filterPools(poolsSanitized, Protocol.UniswapV2);
   }
 }
 

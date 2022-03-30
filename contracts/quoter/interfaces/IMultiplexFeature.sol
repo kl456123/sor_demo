@@ -17,6 +17,7 @@ interface IMultiplexFeature {
     struct BatchSellParams {
         IERC20 inputToken;
         IERC20 outputToken;
+        bool useSelfBalance;
         uint256 sellAmount;
         BatchSellSubcall[] calls;
         address recipient;
@@ -38,6 +39,7 @@ interface IMultiplexFeature {
         uint256 sellAmount;
         MultiHopSellSubcall[] calls;
         address recipient;
+        bool useSelfBalance;
     }
 
     struct MultiHopSellSubcall {

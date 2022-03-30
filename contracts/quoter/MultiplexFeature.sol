@@ -3,11 +3,14 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import './interfaces/IMultiplexFeature.sol';
+import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
+
+import './interfaces/IMultiplexFeature.sol';
 import './multiplex/MultiplexTransformERC20.sol';
 import './multiplex/MultiplexQuoter.sol';
+
 import 'hardhat/console.sol';
 
 contract MultiplexFeature is
@@ -16,12 +19,13 @@ contract MultiplexFeature is
     MultiplexQuoter
 {
     using SafeMath for uint256;
+    using Math for uint256;
+    using SafeERC20 for IERC20;
 
     function _executeBatchSell(BatchSellParams memory params)
         private
         returns (BatchSellState memory state)
     {
-        console.log('params.length: ', params.calls.length);
         for (uint256 i = 0; i < params.calls.length; ++i) {
             if (state.soldAmount >= params.sellAmount) {
                 break;
@@ -39,6 +43,7 @@ contract MultiplexFeature is
                     inputTokenAmount
                 );
             } else if (subcall.id == MultiplexSubcall.TransformERC20) {
+              console.log('_batchSellTransformERC20', inputTokenAmount);
                 _batchSellTransformERC20(
                     state,
                     params,
@@ -50,9 +55,15 @@ contract MultiplexFeature is
             } else {
                 revert('MultiplexFeature::_executeBatchSell/INVALID_SUBCALL');
             }
-            console.log('soldAmount: ', state.soldAmount);
-            console.log('boughtAmount: ', state.boughtAmount);
         }
+        console.log('soldAmount: ', state.soldAmount);
+        console.log('boughtAmount: ', state.boughtAmount);
+        console.log('sellAmount: ', params.sellAmount);
+
+        require(
+            state.soldAmount == params.sellAmount,
+            'MultiplexFeature::_executeBatchSell/INCORRECT_AMOUNT_SOLD'
+        );
     }
 
     function _executeMultiHopSell(MultiHopSellParams memory params)
@@ -60,7 +71,16 @@ contract MultiplexFeature is
         returns (MultiHopSellState memory state)
     {
         state.outputTokenAmount = params.sellAmount;
-        state.from = address(0);
+        state.from = computeHopTarget(params, 0);
+        // If the input tokens are currently held by `msg.sender` but
+        // the first hop expects them elsewhere, perform a `transferFrom`.
+        if (state.from != msg.sender) {
+            IERC20(params.tokens[0]).safeTransferFrom(
+                msg.sender,
+                state.from,
+                params.sellAmount
+            );
+        }
 
         for (
             state.hopIndex = 0;
@@ -68,7 +88,7 @@ contract MultiplexFeature is
             ++state.hopIndex
         ) {
             MultiHopSellSubcall memory subcall = params.calls[state.hopIndex];
-            state.to = address(0);
+            state.to = computeHopTarget(params, state.hopIndex + 1);
             if (subcall.id == MultiplexSubcall.BatchSell) {
                 _nestedBatchSell(state, params, subcall.data);
             } else {
@@ -92,6 +112,7 @@ contract MultiplexFeature is
                     outputToken: outputToken,
                     sellAmount: sellAmount,
                     calls: calls,
+                    useSelfBalance: false,
                     recipient: msg.sender
                 }),
                 minBuyAmount
@@ -108,8 +129,7 @@ contract MultiplexFeature is
             .outputToken
             .balanceOf(params.recipient)
             .sub(balanceBefore);
-        // boughtAmount = Math.min(balanceDelta, state.boughtAmount);
-        boughtAmount = state.boughtAmount;
+        boughtAmount = Math.min(balanceDelta, state.boughtAmount);
 
         require(
             boughtAmount >= minBuyAmount,
@@ -129,6 +149,7 @@ contract MultiplexFeature is
                     tokens: tokens,
                     sellAmount: sellAmount,
                     calls: calls,
+                    useSelfBalance: false,
                     recipient: msg.sender
                 }),
                 minBuyAmount
@@ -149,8 +170,7 @@ contract MultiplexFeature is
         uint256 balanceDelta = outputToken.balanceOf(params.recipient).sub(
             balanceBefore
         );
-        // boughtAmount = Math.min(balanceDelta, state.outputTokenAmount);
-        boughtAmount = state.outputTokenAmount;
+        boughtAmount = Math.min(balanceDelta, state.outputTokenAmount);
 
         require(
             boughtAmount >= minBuyAmount,
@@ -169,6 +189,8 @@ contract MultiplexFeature is
         batchSellParams.outputToken = IERC20(params.tokens[state.hopIndex + 1]);
         // the output token from previous sell is input token for current batch sell
         batchSellParams.sellAmount = state.outputTokenAmount;
+        batchSellParams.recipient = state.to;
+        batchSellParams.useSelfBalance = state.hopIndex > 0 || params.useSelfBalance;
 
         state.outputTokenAmount = _executeBatchSell(batchSellParams)
             .boughtAmount;
@@ -186,10 +208,37 @@ contract MultiplexFeature is
             (address[], MultiHopSellSubcall[])
         );
         multiHopSellParams.sellAmount = sellAmount;
+        multiHopSellParams.recipient = params.recipient;
+        multiHopSellParams.useSelfBalance = params.useSelfBalance;
 
         uint256 outputTokenAmount = _executeMultiHopSell(multiHopSellParams)
             .outputTokenAmount;
         state.soldAmount = state.soldAmount.add(sellAmount);
         state.boughtAmount = state.boughtAmount.add(outputTokenAmount);
+    }
+
+    // This function computes the "target" address of hop index `i` within
+    // a multi-hop sell.
+    // If `i == 0`, the target is the address which should hold the input
+    // tokens prior to executing `calls[0]`. Otherwise, it is the address
+    // that should receive `tokens[i]` upon executing `calls[i-1]`.
+    function computeHopTarget(MultiHopSellParams memory params, uint256 i)
+        private
+        view
+        returns (address target)
+    {
+        if (i == params.calls.length) {
+            // The last call should send the output tokens to the
+            // multi-hop sell recipient.
+            target = params.recipient;
+        } else {
+            if (i == 0) {
+                // the input token are held by msg.sender for the first time
+                target = msg.sender;
+            } else {
+                // the intermediate token only held by self
+                target = address(this);
+            }
+        }
     }
 }

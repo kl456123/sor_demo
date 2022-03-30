@@ -66,7 +66,7 @@ class TestSuite {
         Protocol.Balancer,
         Protocol.BalancerV2,
         Protocol.Curve,
-        Protocol.CurveV2,
+        // Protocol.CurveV2,
       ],
       maxSplits: 6,
       poolSelections: {
@@ -89,13 +89,13 @@ async function main() {
 
   // trade params
   const tokens = TOKENS[chainId]!;
-  const baseToken = tokens.YFI;
-  const quoteToken = tokens.UNI;
+  const baseToken = tokens.WETH;
+  const quoteToken = tokens.USDT;
   // find the best route for quote
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('1', baseToken.decimals)
+    ethers.utils.parseUnits('10000', baseToken.decimals)
   );
 
   const swapRoute = await testSuite.quote({ amount, quoteToken, tradeType });

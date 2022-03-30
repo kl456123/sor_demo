@@ -15,7 +15,10 @@ interface ITransformERC20Feature {
         IERC20 outputToken;
         uint256 inputTokenAmount;
         uint256 minOutputTokenAmount;
+        bool useSelfBalance;
         Transformation[] transformations;
+        address payable recipient;
+        address payable taker;
     }
 
     function transformERC20(

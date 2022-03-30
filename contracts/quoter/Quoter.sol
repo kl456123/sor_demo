@@ -7,7 +7,7 @@ import './MultiplexFeature.sol';
 import './TransformERC20Feature.sol';
 import './QuoteERC20Feature.sol';
 
-contract Quoter is MultiplexFeature, TransformERC20Feature, QuoteERC20Feature {
+contract Quoter is MultiplexFeature, QuoteERC20Feature {
     struct CallResults {
         bool success;
         bytes data;

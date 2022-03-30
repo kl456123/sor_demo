@@ -32,31 +32,61 @@ export type LocalCacheEntry<T> = {
 };
 
 // dex sources to aggregate.
-
 export enum Protocol {
-  UniswapV2 = 'Uniswap_V2',
-  SushiSwap = 'SushiSwap',
+  // need to determined lately
+  Unknow = 'Unknow',
   Curve = 'Curve',
-  CurveV2 = 'CurveV2',
-  Eth2Dai = 'Eth2Dai',
-  ZeroX = 'ZeroX', // limit order
+  UniswapV2 = 'UniswapV2',
   Balancer = 'Balancer',
-  BalancerV2 = 'BalancerV2',
-  Bancor = 'Bancor',
-  UniswapV3 = 'UniswapV3',
+  Kyber = 'Kyber',
   DODO = 'DODO',
   DODOV2 = 'DODOV2',
-  Kyber = 'Kyber',
+  Bancor = 'Bancor',
   MakerPSM = 'MakerPSM',
+  BalancerV2 = 'BalancerV2',
+  UniswapV3 = 'UniswapV3',
+  KeyberDMM = 'KeyberDMM',
+  CurveV2 = 'CurveV2',
+
+  SushiSwap = 'SushiSwap',
+  Eth2Dai = 'Eth2Dai',
+  ZeroX = 'ZeroX', // limit order
 
   // BSC only
-  PancakeSwapV2 = 'PancakeSwap_V2',
+  PancakeSwapV2 = 'PancakeSwapV2',
   BakerySwap = 'BakerySwap',
 
   // Polygon only
   QuickSwap = 'QuickSwap',
+}
+
+// The order of all protocols should be in consistent with the contracts code
+export enum ProtocolId {
   // need to determined lately
-  Unknow = 'Unknow',
+  Unknow,
+  Curve,
+  UniswapV2,
+  Balancer,
+  Kyber,
+  DODO,
+  DODOV2,
+  Bancor,
+  MakerPSM,
+  BalancerV2,
+  UniswapV3,
+  KeyberDMM,
+  CurveV2,
+
+  SushiSwap,
+  Eth2Dai,
+  ZeroX, // limit order
+
+  // BSC only
+  PancakeSwapV2,
+  BakerySwap,
+
+  // Polygon only
+  QuickSwap,
 }
 
 // subgraph to fetch pools for specific sources

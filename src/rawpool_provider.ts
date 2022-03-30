@@ -11,7 +11,7 @@ import { PoolV2 as Pool } from './entitiesv2';
 import { logger } from './logging';
 import { BalancerPoolProvider } from './markets/balancer_subgraph_provider';
 import { BalancerV2PoolProvider } from './markets/balancerv2_subgraph_provider';
-import { CurvePoolProvider } from './markets/curve_pool_provider';
+import { CurveSubgraphPoolProvider } from './markets/curve_pool_provider';
 import { CurveV2PoolProvider } from './markets/curvev2_pool_provider';
 import { DODOPoolProvider } from './markets/dodo_provider';
 import { DODOV2SubgraphPoolProvider } from './markets/dodov2_subgraph_provider';
@@ -51,8 +51,8 @@ export class RawPoolProvider {
       new UniswapV2StaticFileSubgraphProvider();
     this.balancerV2PoolProvider = new BalancerV2PoolProvider(chainId);
     this.balancerPoolProvider = new BalancerPoolProvider();
-    this.curvePoolProvider = new CurvePoolProvider();
-    // this.curvePoolProvider = new CurveSubgraphPoolProvider(chainId);
+    // this.curvePoolProvider = new CurvePoolProvider();
+    this.curvePoolProvider = new CurveSubgraphPoolProvider(chainId);
     this.uniswapV3SubgraphPoolProvider = new UniswapV3SubgraphPoolProvider(
       chainId
     );

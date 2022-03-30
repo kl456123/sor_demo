@@ -5,11 +5,9 @@ pragma experimental ABIEncoderV2;
 
 interface IERC20Transformer {
     struct TransformContext {
-        // address payable recipient;
+        address payable recipient;
         bytes data;
     }
 
-    function transform(TransformContext calldata context)
-        external
-        returns (bytes4 success);
+    function transform(TransformContext calldata context) external;
 }

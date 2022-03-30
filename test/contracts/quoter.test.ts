@@ -72,7 +72,6 @@ describe('Quoter', function () {
         calls: [
           { id: MultiplexSubcallType.Quoter, sellAmount: max, data: uniswapV2 },
         ],
-        recipient: '0x0',
       },
     });
     multiHopSubCalls.push({
@@ -81,7 +80,6 @@ describe('Quoter', function () {
         calls: [
           { id: MultiplexSubcallType.Quoter, sellAmount: max, data: uniswapV3 },
         ],
-        recipient: '0x0',
       },
     });
     const calls = encodeMultiplexMultiHop(multiHopSubCalls);
@@ -196,7 +194,6 @@ describe('Quoter', function () {
         calls: [
           { id: MultiplexSubcallType.Quoter, sellAmount: max, data: uniswapV2 },
         ],
-        recipient: '0x0',
       },
     });
     multiHopSubCalls.push({
@@ -205,7 +202,6 @@ describe('Quoter', function () {
         calls: [
           { id: MultiplexSubcallType.Quoter, sellAmount: max, data: uniswapV3 },
         ],
-        recipient: '0x0',
       },
     });
 
@@ -226,7 +222,6 @@ describe('Quoter', function () {
       {
         tokens: [takerToken, hopToken, makerToken],
         calls: multiHopSubCalls,
-        recipient: '0x0',
       },
     ];
     const ids = [
