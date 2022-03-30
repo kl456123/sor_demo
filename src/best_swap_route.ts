@@ -20,6 +20,7 @@ import { RoutingConfig, TradeType } from './types';
 
 export type SwapRouteV2 = {
   routeWithQuote: MultiplexRouteWithValidQuote;
+  calldata?: string;
   blockNumber: number;
 };
 

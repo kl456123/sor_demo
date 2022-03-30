@@ -694,7 +694,7 @@ export class SamplerOperation {
         const fromTokenIdx = tokensAddress.indexOf(route.input.address);
         const toTokenIdx = tokensAddress.indexOf(route.output.address);
         return {
-          protocol: Protocol.Curve,
+          protocol: route.pool.protocol,
           poolAddress: route.pool.id,
           sellQuoteFunctionSelector: curveInfo.sellQuoteFunctionSelector,
           buyQuoteFunctionSelector: curveInfo.buyQuoteFunctionSelector,

@@ -75,20 +75,17 @@ contract TransformERC20Feature is ITransformERC20Feature {
             .getTokenBalanceOf(args.outputToken, args.recipient);
 
         // Pull input tokens from the taker to the wallet and transfer attached ETH.
-        if(!args.useSelfBalance){
-          _transferInputTokensAndAttachedEth(args, address(this));
+        if (!args.useSelfBalance) {
+            _transferInputTokensAndAttachedEth(args, address(this));
         }
         {
             for (uint256 i = 0; i < args.transformations.length; ++i) {
                 _executeTransformation(args.transformations[i]);
             }
 
-            if(address(this)!=args.recipient){
-              // Transfer output tokens from this to recipient
-              _executeOutputTokenTransfer(
-                  args.outputToken,
-                  args.recipient
-              );
+            if (address(this) != args.recipient) {
+                // Transfer output tokens from this to recipient
+                _executeOutputTokenTransfer(args.outputToken, args.recipient);
             }
         }
 
@@ -101,8 +98,8 @@ contract TransformERC20Feature is ITransformERC20Feature {
             'output token is less after tradeing'
         );
         outputTokenAmount = state.recipientOutputTokenBalanceAfter.sub(
-                state.recipientOutputTokenBalanceBefore
-            );
+            state.recipientOutputTokenBalanceBefore
+        );
         // Ensure enough output token has been sent to the taker.
         require(
             outputTokenAmount >= args.minOutputTokenAmount,

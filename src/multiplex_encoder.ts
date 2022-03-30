@@ -1,4 +1,4 @@
-import { BigNumberish, BytesLike, utils } from 'ethers';
+import { BigNumber, BigNumberish, BytesLike, ethers, utils } from 'ethers';
 
 import { ICurve__factory } from '../typechain-types/factories/ICurve__factory';
 import { Quoter__factory } from '../typechain-types/factories/Quoter__factory';
@@ -7,6 +7,7 @@ import {
   DODOV1_CONFIG_BY_CHAIN_ID,
   DODOV2_FACTORIES_BY_CHAIN_ID,
 } from './addresses';
+import { Protocol2Id } from './constants';
 import { getCurveInfosForPool } from './markets/curve';
 import { ChainId, Protocol, ProtocolId, TradeType } from './types';
 
@@ -66,12 +67,56 @@ export type FillQuoteTransformData = {
 };
 
 export type QuoteParams =
+  | QuoteFromBalancerParams
   | QuoteFromBalancerV2Params
   | QuoteFromUniswapV3Params
   | QuoteFromUniswapV2Params
   | QuoteFromCurveParmas
   | QuoteFromDODOParams
+  | QuoteFromKyberParams
+  | QuoteFromNativeOrderParams
+  | QuoteFromMakerPSMParams
+  | QuoteFromBancorParams
   | QuoteFromDODOV2Params;
+
+export type QuoteFromMakerPSMParams = {
+  protocol: Protocol.MakerPSM;
+  psmAddress: string;
+  ilkIdentifier: string;
+  gemTokenAddress: string;
+  takerToken: string;
+  makerToken: string;
+};
+
+export type QuoteFromBancorParams = {
+  protocol: Protocol.Bancor;
+  registry: string;
+  takerToken: string;
+  makerToken: string;
+  paths: string[][];
+};
+
+export type QuoteFromNativeOrderParams = {
+  protocol: Protocol.ZeroX;
+};
+
+export type QuoteFromKyberParams = {
+  protocol: Protocol.Kyber;
+  reserveOffset: number;
+  hintHandler: string;
+  networkProxy: string;
+  weth: string;
+  hint: string;
+  takerToken: string;
+  makerToken: string;
+};
+
+export type QuoteFromBalancerParams = {
+  protocol: Protocol.Balancer;
+  poolAddress: string;
+  takerToken: string;
+  makerToken: string;
+};
 
 export type QuoteFromBalancerV2Params = {
   protocol: Protocol.BalancerV2;
@@ -88,7 +133,7 @@ export type QuoteFromUniswapV2Params = {
 };
 
 export type QuoteFromCurveParmas = {
-  protocol: Protocol.Curve;
+  protocol: Protocol.Curve | Protocol.CurveV2;
   poolAddress: string;
   fromToken: string;
   toToken: string;
@@ -162,6 +207,45 @@ export function encodeMultiplexMultiHop(
       ['tuple(uint8 id,uint256 sellAmount,bytes data)[]'],
       [encodedBatchCalls]
     );
+    encodedCalls.push(encodedCall);
+  }
+  return encodedCalls;
+}
+
+export function encodeMultiplexBatch(
+  calls: BatchSellSubcall[]
+): EncodedBatchSellSubcall[] {
+  const encodedCalls: EncodedBatchSellSubcall[] = [];
+  for (const call of calls) {
+    const encodedCall: EncodedBatchSellSubcall = {
+      id: MultiplexSubcallType.Invalid,
+      sellAmount: 0,
+      data: '0x00',
+    };
+    encodedCall.id = call.id;
+    encodedCall.sellAmount = call.sellAmount;
+    switch (call.id) {
+      case MultiplexSubcallType.Quoter:
+        encodedCall.data = encodeQuoter(call.data as QuoteParams);
+        break;
+      case MultiplexSubcallType.MultiHopSell: {
+        const encodedmultihopcalls = encodeMultiplexMultiHop(
+          (call.data as MultiHopSellParams).calls
+        );
+        const tokens = (call.data as MultiHopSellParams).tokens;
+        encodedCall.data = utils.defaultAbiCoder.encode(
+          ['address[]', 'tuple(uint8 id,bytes data)[]'],
+          [tokens, encodedmultihopcalls]
+        );
+        break;
+      }
+      case MultiplexSubcallType.TransformERC20: {
+        encodedCall.data = encodeTransformer(call.data as TransformerParams[]);
+        break;
+      }
+      default:
+        throw new Error(`Unsupported MultiplexSubcallType: ${call.id}`);
+    }
     encodedCalls.push(encodedCall);
   }
   return encodedCalls;
@@ -270,6 +354,9 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
         [contractInterface.getSighash('quoteSellFromDODOV2'), paramsData]
       );
     }
+    default: {
+      throw new Error(`unknown protocol: ${params.protocol}`);
+    }
   }
 }
 
@@ -310,14 +397,12 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
       const curveInterface = ICurve__factory.createInterface();
       return utils.defaultAbiCoder.encode(
         [
-          'tuple(address poolAddress,bytes4 sellQuoteFunctionSelector,bytes4 buyQuoteFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
+          'tuple(address poolAddress,bytes4 exchangeFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
         ],
         [
           {
             poolAddress: curveInfo.poolAddress,
-            sellQuoteFunctionSelector:
-              curveInterface.getSighash('get_dy_underlying'),
-            buyQuoteFunctionSelector: '0x00000000',
+            exchangeFunctionSelector: curveInfo.exchangeFunctionSelector,
             fromTokenIdx,
             toTokenIdx,
           },
@@ -356,6 +441,9 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
           },
         ]
       );
+    }
+    default: {
+      throw new Error(`unknown protocol: ${params.protocol}`);
     }
   }
 }
@@ -413,45 +501,6 @@ export function encodeTransformer(
   );
 }
 
-export function encodeMultiplexBatch(
-  calls: BatchSellSubcall[]
-): EncodedBatchSellSubcall[] {
-  const encodedCalls: EncodedBatchSellSubcall[] = [];
-  for (const call of calls) {
-    const encodedCall: EncodedBatchSellSubcall = {
-      id: MultiplexSubcallType.Invalid,
-      sellAmount: 0,
-      data: '0x00',
-    };
-    encodedCall.id = call.id;
-    encodedCall.sellAmount = call.sellAmount;
-    switch (call.id) {
-      case MultiplexSubcallType.Quoter:
-        encodedCall.data = encodeQuoter(call.data as QuoteParams);
-        break;
-      case MultiplexSubcallType.MultiHopSell: {
-        const encodedmultihopcalls = encodeMultiplexMultiHop(
-          (call.data as MultiHopSellParams).calls
-        );
-        const tokens = (call.data as MultiHopSellParams).tokens;
-        encodedCall.data = utils.defaultAbiCoder.encode(
-          ['address[]', 'tuple(uint8 id,bytes data)[]'],
-          [tokens, encodedmultihopcalls]
-        );
-        break;
-      }
-      case MultiplexSubcallType.TransformERC20: {
-        encodedCall.data = encodeTransformer(call.data as TransformerParams[]);
-        break;
-      }
-      default:
-        throw new Error(`Unsupported MultiplexSubcallType: ${call.id}`);
-    }
-    encodedCalls.push(encodedCall);
-  }
-  return encodedCalls;
-}
-
 export function getErc20BridgeSourceToBridgeSource(source: ProtocolId): string {
   switch (source) {
     case ProtocolId.Balancer:
@@ -499,4 +548,101 @@ export function encodeBridgeSourceId(
       utils.arrayify(utils.formatBytes32String(name)).slice(0, 16),
     ])
   );
+}
+
+export function createMultiHopSellSubcalls(
+  tokens: string[],
+  params: QuoteParams[],
+  transformerAddr: string
+) {
+  const max = ethers.constants.MaxUint256;
+  const subcalls = [];
+  for (let i = 0; i < params.length; ++i) {
+    const transformations = createTransformations(
+      [tokens[i], tokens[i + 1]],
+      params[i],
+      transformerAddr
+    );
+    const subcall: MultiHopSellSubcall = {
+      id: MultiplexSubcallType.BatchSell,
+      data: {
+        calls: [
+          {
+            id: MultiplexSubcallType.TransformERC20,
+            sellAmount: max,
+            data: transformations,
+          },
+        ],
+      },
+    };
+    subcalls.push(subcall);
+  }
+  return subcalls;
+}
+
+export function createBatchSellSubcalls(
+  tokenPair: [string, string],
+  params: QuoteParams[],
+  transformerAddr: string,
+  percents: number[],
+  sellAmount: BigNumber
+) {
+  const batchSellSubcalls: BatchSellSubcall[] = [];
+  for (let i = 0; i < params.length; ++i) {
+    const param = params[i];
+    const transformations = createTransformations(
+      tokenPair,
+      param,
+      transformerAddr
+    );
+    batchSellSubcalls.push({
+      id: MultiplexSubcallType.TransformERC20,
+      sellAmount: sellAmount.mul(percents[i]).div(100),
+      // use quote directly or multihop for more complex route
+      data: transformations,
+    });
+  }
+  return batchSellSubcalls;
+}
+
+export function createBridgeOrder(params: QuoteParams) {
+  const max = ethers.constants.MaxUint256;
+  const source = getErc20BridgeSourceToBridgeSource(
+    Protocol2Id[params.protocol]
+  );
+  const takerTokenAmount = max;
+  const makerTokenAmount = 0;
+  const order = {
+    source,
+    takerTokenAmount,
+    makerTokenAmount,
+    bridgeData: params,
+  };
+  return order;
+}
+
+export function createTransformations(
+  tokenPair: [string, string],
+  params: QuoteParams,
+  transformerAddr: string
+) {
+  const max = ethers.constants.MaxUint256;
+  const bridgeOrder = createBridgeOrder(params);
+
+  const data: TransformData = {
+    side: TradeType.EXACT_INPUT,
+    sellToken: tokenPair[0],
+    buyToken: tokenPair[1],
+    orderType: OrderType.Bridge,
+    bridgeOrder,
+    fillAmount: max,
+  };
+
+  const transformations: TransformerParams[] = [];
+  transformations.push({
+    transformerType: TransformerType.FillQuoteTransformer,
+    transformer: transformerAddr,
+    transformData: data,
+  });
+  return transformations;
 }

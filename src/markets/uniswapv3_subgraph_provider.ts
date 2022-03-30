@@ -6,7 +6,7 @@ import _ from 'lodash';
 import { Token } from '../entities';
 import { logger } from '../logging';
 import { IRawPoolProvider } from '../rawpool_provider';
-import { ChainId, ProviderConfig, RawPool } from '../types';
+import { ChainId, Protocol, ProviderConfig, RawPool } from '../types';
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
@@ -161,7 +161,7 @@ export class UniswapV3SubgraphPoolProvider implements IRawPoolProvider {
         { address: pool.token1.id.toLowerCase(), symbol: pool.token1.symbol },
       ];
       return {
-        protocol: 'Uniswap_V3',
+        protocol: Protocol.UniswapV3,
         id: pool.id.toLowerCase(),
         tokens,
         reserve: parseFloat(totalValueLockedUSD),

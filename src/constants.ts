@@ -1,4 +1,4 @@
-import { Protocol, RoutingConfig } from './types';
+import { Protocol, ProtocolId, RoutingConfig } from './types';
 
 export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
   poolSelections: {
@@ -28,12 +28,29 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   ZeroX: Protocol.ZeroX,
   Curve: Protocol.Curve,
   CurveV2: Protocol.CurveV2,
-  Uniswap_V3: Protocol.UniswapV3,
+  UniswapV3: Protocol.UniswapV3,
   BalancerV2: Protocol.BalancerV2,
   DODOV2: Protocol.DODOV2,
   DODO: Protocol.DODO,
   Bancor: Protocol.Bancor,
   Balancer: Protocol.Balancer,
   Kyber: Protocol.Kyber,
-  MakerPsm: Protocol.MakerPSM,
+  MakerPSM: Protocol.MakerPSM,
+};
+
+export const Protocol2Id = {
+  UniswapV2: ProtocolId.UniswapV2,
+  SushiSwap: ProtocolId.SushiSwap,
+  Eth2Dai: ProtocolId.Eth2Dai,
+  ZeroX: ProtocolId.ZeroX,
+  Curve: ProtocolId.Curve,
+  CurveV2: ProtocolId.CurveV2,
+  UniswapV3: ProtocolId.UniswapV3,
+  BalancerV2: ProtocolId.BalancerV2,
+  DODOV2: ProtocolId.DODOV2,
+  DODO: ProtocolId.DODO,
+  Bancor: ProtocolId.Bancor,
+  Balancer: ProtocolId.Balancer,
+  Kyber: ProtocolId.Kyber,
+  MakerPSM: ProtocolId.MakerPSM,
 };

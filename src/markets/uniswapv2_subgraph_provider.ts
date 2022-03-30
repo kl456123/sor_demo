@@ -9,7 +9,7 @@ import _ from 'lodash';
 
 import { Token } from '../entities';
 import { IRawPoolProvider } from '../rawpool_provider';
-import { ChainId, ProviderConfig, RawPool, Protocol } from '../types';
+import { ChainId, Protocol, ProviderConfig, RawPool } from '../types';
 
 const PAGE_SIZE = 1000;
 const threshold = 0.025;

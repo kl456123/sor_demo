@@ -61,8 +61,13 @@ contract FillQuoteTransformer is IERC20Transformer {
 
     function transform(TransformContext calldata context) external override {
         TransformData memory data = abi.decode(context.data, (TransformData));
-        uint256 takerTokenBalanceRemaining = data.sellToken.getTokenBalanceOf(address(this));
-        data.fillAmount = _normalizeFillAmount(data.fillAmount, takerTokenBalanceRemaining);
+        uint256 takerTokenBalanceRemaining = data.sellToken.getTokenBalanceOf(
+            address(this)
+        );
+        data.fillAmount = _normalizeFillAmount(
+            data.fillAmount,
+            takerTokenBalanceRemaining
+        );
 
         // Fill the order.
         FillOrderResults memory results;
@@ -125,12 +130,12 @@ contract FillQuoteTransformer is IERC20Transformer {
         return Math.min(takerTokenFillAmount, orderTakerAmount);
     }
 
-          // Convert possible proportional values to absolute quantities.
-      function _normalizeFillAmount(uint256 rawAmount, uint256 balance)
-          private
-          pure
-          returns (uint256 normalized)
-      {
-          return Math.min(rawAmount, balance);
-      }
+    // Convert possible proportional values to absolute quantities.
+    function _normalizeFillAmount(uint256 rawAmount, uint256 balance)
+        private
+        pure
+        returns (uint256 normalized)
+    {
+        return Math.min(rawAmount, balance);
+    }
 }

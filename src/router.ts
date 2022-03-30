@@ -1,4 +1,4 @@
-import { providers } from 'ethers';
+import { ethers, providers } from 'ethers';
 import _ from 'lodash';
 
 import {
@@ -14,6 +14,7 @@ import { logger } from './logging';
 import { QuoterProvider } from './quoter_provider';
 import { RawPoolProvider } from './rawpool_provider';
 import { SourceFilters } from './source_filters';
+import { QuoteConsumer } from './quote_consumer';
 import { ITokenProvider, TokenProvider } from './token_provider';
 import { ChainId, Protocol, RoutingConfig, TradeType } from './types';
 import { multiplexRouteQToString } from './utils';
@@ -30,6 +31,7 @@ export abstract class IRouter {
 export type AlphaRouterParams = {
   chainId: ChainId;
   provider: providers.BaseProvider;
+  transformerAddr?: string;
 };
 
 export class AlphaRouter implements IRouter {
@@ -39,7 +41,8 @@ export class AlphaRouter implements IRouter {
   protected tokenProvider: ITokenProvider;
   protected poolProvider: RawPoolProvider;
   protected sourceFilters: SourceFilters;
-  constructor({ chainId, provider }: AlphaRouterParams) {
+  protected quoteConsumer: QuoteConsumer;
+  constructor({ chainId, provider, transformerAddr }: AlphaRouterParams) {
     this.chainId = chainId;
     // node provider
     this.provider = provider;
@@ -53,6 +56,12 @@ export class AlphaRouter implements IRouter {
       this.poolProvider
     );
     this.sourceFilters = SourceFilters.all().exclude(Protocol.Unknow);
+    transformerAddr = transformerAddr || ethers.constants.AddressZero;
+    this.quoteConsumer = new QuoteConsumer(
+      this.chainId,
+      this.provider,
+      transformerAddr
+    );
   }
 
   public async route(
@@ -130,6 +139,8 @@ export class AlphaRouter implements IRouter {
       return undefined;
     }
     const { routeWithQuote } = swapRoutes!;
+    swapRoutes.calldata =
+      this.quoteConsumer.encodeBatchSellRoute(routeWithQuote);
 
     // print swapRoute
     logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
@@ -141,6 +152,7 @@ export class AlphaRouter implements IRouter {
     logger.info(`\t\t${routeWithQuote.quote.amount.toString()}`);
     logger.info(`\tGas Adjusted Quote In:`);
     logger.info(`\t\t${routeWithQuote.quoteAdjustedForGas.amount.toString()}`);
+    logger.info(`calldata: ${swapRoutes.calldata}`);
 
     return swapRoutes;
   }

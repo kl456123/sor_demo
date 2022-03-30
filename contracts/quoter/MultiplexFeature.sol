@@ -43,7 +43,6 @@ contract MultiplexFeature is
                     inputTokenAmount
                 );
             } else if (subcall.id == MultiplexSubcall.TransformERC20) {
-              console.log('_batchSellTransformERC20', inputTokenAmount);
                 _batchSellTransformERC20(
                     state,
                     params,
@@ -190,7 +189,9 @@ contract MultiplexFeature is
         // the output token from previous sell is input token for current batch sell
         batchSellParams.sellAmount = state.outputTokenAmount;
         batchSellParams.recipient = state.to;
-        batchSellParams.useSelfBalance = state.hopIndex > 0 || params.useSelfBalance;
+        batchSellParams.useSelfBalance =
+            state.hopIndex > 0 ||
+            params.useSelfBalance;
 
         state.outputTokenAmount = _executeBatchSell(batchSellParams)
             .boughtAmount;
