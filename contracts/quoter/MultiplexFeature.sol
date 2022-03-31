@@ -11,8 +11,6 @@ import './interfaces/IMultiplexFeature.sol';
 import './multiplex/MultiplexTransformERC20.sol';
 import './multiplex/MultiplexQuoter.sol';
 
-import 'hardhat/console.sol';
-
 contract MultiplexFeature is
     IMultiplexFeature,
     MultiplexTransformERC20,
@@ -21,6 +19,10 @@ contract MultiplexFeature is
     using SafeMath for uint256;
     using Math for uint256;
     using SafeERC20 for IERC20;
+    /// @dev The highest bit of a uint256 value.
+    uint256 private constant HIGH_BIT = 2**255;
+    /// @dev Mask of the lower 255 bits of a uint256 value.
+    uint256 private constant LOWER_255_BITS = HIGH_BIT - 1;
 
     function _executeBatchSell(BatchSellParams memory params)
         private
@@ -31,10 +33,15 @@ contract MultiplexFeature is
                 break;
             }
             BatchSellSubcall memory subcall = params.calls[i];
-            uint256 inputTokenAmount = Math.min(
+            uint256 inputTokenAmount = _normalizeSellAmount(
                 subcall.sellAmount,
-                params.sellAmount.sub(state.soldAmount)
+                params.sellAmount,
+                state.soldAmount
             );
+            if (i == params.calls.length - 1) {
+                // use up remain tokens
+                inputTokenAmount = params.sellAmount - state.soldAmount;
+            }
             if (subcall.id == MultiplexSubcall.MultiHopSell) {
                 _nestedMultiHopSell(
                     state,
@@ -55,9 +62,6 @@ contract MultiplexFeature is
                 revert('MultiplexFeature::_executeBatchSell/INVALID_SUBCALL');
             }
         }
-        console.log('soldAmount: ', state.soldAmount);
-        console.log('boughtAmount: ', state.boughtAmount);
-        console.log('sellAmount: ', params.sellAmount);
 
         require(
             state.soldAmount == params.sellAmount,
@@ -240,6 +244,28 @@ contract MultiplexFeature is
                 // the intermediate token only held by self
                 target = address(this);
             }
+        }
+    }
+
+    // If `rawAmount` encodes a proportion of `totalSellAmount`, this function
+    // converts it to an absolute quantity. Caps the normalized amount to
+    // the remaining sell amount (`totalSellAmount - soldAmount`).
+    function _normalizeSellAmount(
+        uint256 rawAmount,
+        uint256 totalSellAmount,
+        uint256 soldAmount
+    ) private pure returns (uint256 normalized) {
+        if ((rawAmount & HIGH_BIT) == HIGH_BIT) {
+            // If the high bit of `rawAmount` is set then the lower 255 bits
+            // specify a fraction of `totalSellAmount`.
+            return
+                Math.min(
+                    (totalSellAmount *
+                        Math.min(rawAmount & LOWER_255_BITS, 1e18)) / 1e18,
+                    totalSellAmount.sub(soldAmount)
+                );
+        } else {
+            return Math.min(rawAmount, totalSellAmount.sub(soldAmount));
         }
     }
 }

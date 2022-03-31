@@ -64,9 +64,9 @@ contract FillQuoteTransformer is IERC20Transformer {
         uint256 takerTokenBalanceRemaining = data.sellToken.getTokenBalanceOf(
             address(this)
         );
-        data.fillAmount = _normalizeFillAmount(
-            data.fillAmount,
-            takerTokenBalanceRemaining
+        data.fillAmount = Math.min(
+            _normalizeFillAmount(data.fillAmount, takerTokenBalanceRemaining),
+            context.tokenLimits
         );
 
         // Fill the order.

@@ -80,7 +80,10 @@ contract TransformERC20Feature is ITransformERC20Feature {
         }
         {
             for (uint256 i = 0; i < args.transformations.length; ++i) {
-                _executeTransformation(args.transformations[i]);
+                _executeTransformation(
+                    args.transformations[i],
+                    args.inputTokenAmount
+                );
             }
 
             if (address(this) != args.recipient) {
@@ -107,15 +110,17 @@ contract TransformERC20Feature is ITransformERC20Feature {
         );
     }
 
-    function _executeTransformation(Transformation memory transformation)
-        private
-    {
+    function _executeTransformation(
+        Transformation memory transformation,
+        uint256 tokenLimits
+    ) private {
         address transformer = transformation.transformer;
         (bool success, bytes memory resultData) = transformer.delegatecall(
             abi.encodeWithSelector(
                 IERC20Transformer.transform.selector,
                 IERC20Transformer.TransformContext({
                     data: transformation.data,
+                    tokenLimits: tokenLimits,
                     recipient: payable(msg.sender)
                 })
             )

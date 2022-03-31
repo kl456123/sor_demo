@@ -1,5 +1,5 @@
 import { Interface } from '@ethersproject/abi';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 import { Swapper__factory } from '../typechain-types';
 
@@ -45,6 +45,8 @@ type SubcallType = {
 const max = ethers.constants.MaxUint256;
 
 export class QuoteConsumer {
+  private readonly base = BigNumber.from(2).pow(255);
+  private readonly percision = BigNumber.from(10).pow(18);
   protected swapperInterface: Interface;
   constructor(
     public readonly chainId: ChainId,
@@ -77,7 +79,7 @@ export class QuoteConsumer {
       case Protocol.Curve: {
         const poolAddress = route.pool.id;
         return {
-          protocol: Protocol.Curve,
+          protocol: route.pool.protocol,
           poolAddress: route.pool.id,
           fromToken: route.input.address,
           toToken: route.output.address,
@@ -109,6 +111,8 @@ export class QuoteConsumer {
           helper: opts.helper,
           takerToken: route.input.address,
           makerToken: route.output.address,
+          pool: '',
+          isSellBase: false,
         };
       }
       case Protocol.DODOV2: {
@@ -120,6 +124,8 @@ export class QuoteConsumer {
           offset,
           takerToken: route.input.address,
           makerToken: route.output.address,
+          pool: '',
+          isSellBase: false,
         };
       }
       case Protocol.Kyber: {
@@ -192,7 +198,10 @@ export class QuoteConsumer {
     for (const route of routes) {
       const encodedCall: BatchSellSubcall = {
         id: MultiplexSubcallType.Invalid,
-        sellAmount: route.amount.amount,
+        sellAmount: BigNumber.from(route.percent)
+          .mul(this.percision)
+          .div(100)
+          .add(this.base), //use percent in this batch
         data: [],
       };
       switch (route.routeType) {
@@ -247,8 +256,8 @@ export class QuoteConsumer {
     const takerToken = routeWithQuote.amount.token.address;
     const makerToken = routeWithQuote.quote.token.address;
     const sellAmount = routeWithQuote.amount.amount;
-    // const minBuyAmount = 0;
-    const minBuyAmount = routeWithQuote.quote.amount;
+    const minBuyAmount = 0;
+    // const minBuyAmount = routeWithQuote.quote.amount;
     return this.swapperInterface.encodeFunctionData(
       'multiplexBatchSellTokenForToken',
       [takerToken, makerToken, encodedSubcalls, sellAmount, minBuyAmount]

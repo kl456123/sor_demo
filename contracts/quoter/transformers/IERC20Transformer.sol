@@ -7,6 +7,7 @@ interface IERC20Transformer {
     struct TransformContext {
         address payable recipient;
         bytes data;
+        uint256 tokenLimits;
     }
 
     function transform(TransformContext calldata context) external;

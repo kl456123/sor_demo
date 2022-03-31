@@ -82,7 +82,7 @@ export function computeAllRoutes(
   computeRoutes(tokenOut, [], [tokenIn], tokenIn);
 
   logger.info(
-    routes.map(routeToString),
+    routes.map(routeToString).join('\n'),
     `Computed ${routes.length} possible routes.`
   );
   return routes;

@@ -146,7 +146,7 @@ export class UniswapV3SubgraphPoolProvider implements IRawPoolProvider {
           }
           pools = [];
           logger.info(
-            { err },
+            `${err}`,
             `Failed to get pools from subgraph. Retry attempt: ${retry}`
           );
         },

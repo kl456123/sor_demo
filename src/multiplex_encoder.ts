@@ -8,7 +8,10 @@ import {
   DODOV2_FACTORIES_BY_CHAIN_ID,
 } from './addresses';
 import { Protocol2Id } from './constants';
-import { getCurveInfosForPool } from './markets/curve';
+import {
+  getCurveInfosForPool,
+  getCurveLikeInfosForPool,
+} from './markets/curve';
 import { ChainId, Protocol, ProtocolId, TradeType } from './types';
 
 export enum MultiplexSubcallType {
@@ -77,7 +80,15 @@ export type QuoteParams =
   | QuoteFromNativeOrderParams
   | QuoteFromMakerPSMParams
   | QuoteFromBancorParams
+  | QuoteFromKyberDMMParams
   | QuoteFromDODOV2Params;
+
+export type QuoteFromKyberDMMParams = {
+  protocol: Protocol.KyberDMM;
+  router: string;
+  pools: string[];
+  path: string[];
+};
 
 export type QuoteFromMakerPSMParams = {
   protocol: Protocol.MakerPSM;
@@ -152,6 +163,8 @@ export type QuoteFromDODOParams = {
   helper: string;
   takerToken: string;
   makerToken: string;
+  pool: string;
+  isSellBase: boolean;
 };
 
 export type QuoteFromDODOV2Params = {
@@ -160,11 +173,13 @@ export type QuoteFromDODOV2Params = {
   offset: BigNumberish;
   takerToken: string;
   makerToken: string;
+  pool: string;
+  isSellBase: boolean;
 };
 
 export type BatchSellSubcall = {
   id: MultiplexSubcallType;
-  sellAmount: BigNumberish;
+  sellAmount: BigNumber;
   data: QuoteParams | MultiHopSellParams | TransformerParams[];
 };
 
@@ -300,9 +315,8 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
         [
           {
             poolAddress: curveInfo.poolAddress,
-            sellQuoteFunctionSelector:
-              curveInterface.getSighash('get_dy_underlying'),
-            buyQuoteFunctionSelector: '0x00000000',
+            sellQuoteFunctionSelector: curveInfo.sellQuoteFunctionSelector,
+            buyQuoteFunctionSelector: curveInfo.buyQuoteFunctionSelector,
             fromTokenIdx,
             toTokenIdx,
           },
@@ -368,12 +382,19 @@ export type Transformation = {
 export function encodeBridgeOrder(params: BridgeData): BytesLike {
   const contractInterface = Quoter__factory.createInterface();
   switch (params.protocol) {
+    case Protocol.Balancer: {
+      return utils.defaultAbiCoder.encode(['address'], [params.poolAddress]);
+    }
+    case Protocol.Bancor: {
+      return utils.defaultAbiCoder.encode(
+        ['address bancorNetworkAddress', 'address[] path'],
+        [params.registry, params.paths]
+      );
+    }
     case Protocol.BalancerV2: {
       return utils.defaultAbiCoder.encode(
-        [
-          'tuple(bytes32 poolId,address vault,address takerToken,address makerToken)',
-        ],
-        [params]
+        ['tuple(address vault,bytes32 poolId)'],
+        [{ vault: params.vault, poolId: params.poolId }]
       );
     }
     case Protocol.UniswapV2: {
@@ -388,13 +409,16 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
         [{ quoter: params.quoter, path: params.path, fees: params.fees }]
       );
     }
+    case Protocol.CurveV2:
     case Protocol.Curve: {
       // select the first one
-      const curveInfo = getCurveInfosForPool(params.poolAddress);
+      const curveInfo = getCurveLikeInfosForPool({
+        poolAddress: params.poolAddress,
+        protocol: params.protocol,
+      });
       const tokens = curveInfo.tokens.map(token => token.address);
       const fromTokenIdx = tokens.indexOf(params.fromToken);
       const toTokenIdx = tokens.indexOf(params.toToken);
-      const curveInterface = ICurve__factory.createInterface();
       return utils.defaultAbiCoder.encode(
         [
           'tuple(address poolAddress,bytes4 exchangeFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
@@ -412,34 +436,34 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
     case Protocol.DODO: {
       const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
       return utils.defaultAbiCoder.encode(
-        [
-          'tuple(address registry,address helper,address takerToken,address makerToken)',
-        ],
-        [
-          {
-            registry: opts.registry,
-            helper: opts.helper,
-            takerToken: params.takerToken,
-            makerToken: params.makerToken,
-          },
-        ]
+        ['address', 'address', 'bool'],
+        [opts.helper, params.pool, params.isSellBase]
       );
     }
     case Protocol.DODOV2: {
       const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
       const offset = 0;
       return utils.defaultAbiCoder.encode(
-        [
-          'tuple(address registry,uint256 offset,address takerToken,address makerToken)',
-        ],
-        [
-          {
-            registry: registry,
-            offset,
-            takerToken: params.takerToken,
-            makerToken: params.makerToken,
-          },
-        ]
+        ['address pool', 'bool isSellBase'],
+        [params.pool, params.isSellBase]
+      );
+    }
+    case Protocol.Kyber: {
+      return utils.defaultAbiCoder.encode(
+        ['address', 'bytes'],
+        [params.networkProxy, params.hint]
+      );
+    }
+    case Protocol.KyberDMM: {
+      return utils.defaultAbiCoder.encode(
+        ['address', 'address[]', 'address[]'],
+        [params.router, params.pools, params.path]
+      );
+    }
+    case Protocol.MakerPSM: {
+      return utils.defaultAbiCoder.encode(
+        ['address', 'address'],
+        [params.psmAddress, params.gemTokenAddress]
       );
     }
     default: {

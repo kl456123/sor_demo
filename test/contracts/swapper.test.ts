@@ -301,4 +301,15 @@ describe('Swaper', function () {
     const after = await outputToken.balanceOf(bridgeAdapter.address);
     expect(after.sub(before).gt(0)).toBeTruthy();
   });
+  it('CurveV2 Test', async () => {});
+  it('BalanceV1 Test', async () => {});
+
+  it('BalanceV2 Test', async () => {});
+
+  it('DODO Test', async () => {});
+  it('DODOV2 Test', async () => {});
+  it('Bancor Test', async () => {});
+  it('Kyber Test', async () => {});
+  it('KyberDMM Test', async () => {});
+  it('MakerPSM Test', async () => {});
 });

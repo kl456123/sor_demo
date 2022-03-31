@@ -34,7 +34,7 @@ export const PROTOCOLSTRMAP: { [name: string]: Protocol } = {
   DODO: Protocol.DODO,
   Bancor: Protocol.Bancor,
   Balancer: Protocol.Balancer,
-  Kyber: Protocol.Kyber,
+  KyberDMM: Protocol.KyberDMM,
   MakerPSM: Protocol.MakerPSM,
 };
 
@@ -52,5 +52,6 @@ export const Protocol2Id = {
   Bancor: ProtocolId.Bancor,
   Balancer: ProtocolId.Balancer,
   Kyber: ProtocolId.Kyber,
+  KyberDMM: ProtocolId.KyberDMM,
   MakerPSM: ProtocolId.MakerPSM,
 };

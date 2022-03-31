@@ -1,4 +1,4 @@
-import { ethers, providers } from 'ethers';
+import { providers } from 'ethers';
 import _ from 'lodash';
 
 import {
@@ -11,10 +11,10 @@ import { Composer } from './composer';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
 import { Token, TokenAmount } from './entities';
 import { logger } from './logging';
+import { QuoteConsumer } from './quote_consumer';
 import { QuoterProvider } from './quoter_provider';
 import { RawPoolProvider } from './rawpool_provider';
 import { SourceFilters } from './source_filters';
-import { QuoteConsumer } from './quote_consumer';
 import { ITokenProvider, TokenProvider } from './token_provider';
 import { ChainId, Protocol, RoutingConfig, TradeType } from './types';
 import { multiplexRouteQToString } from './utils';
@@ -31,7 +31,7 @@ export abstract class IRouter {
 export type AlphaRouterParams = {
   chainId: ChainId;
   provider: providers.BaseProvider;
-  transformerAddr?: string;
+  transformerAddr: string;
 };
 
 export class AlphaRouter implements IRouter {
@@ -56,7 +56,6 @@ export class AlphaRouter implements IRouter {
       this.poolProvider
     );
     this.sourceFilters = SourceFilters.all().exclude(Protocol.Unknow);
-    transformerAddr = transformerAddr || ethers.constants.AddressZero;
     this.quoteConsumer = new QuoteConsumer(
       this.chainId,
       this.provider,

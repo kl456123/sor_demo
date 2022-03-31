@@ -45,7 +45,7 @@ export enum Protocol {
   MakerPSM = 'MakerPSM',
   BalancerV2 = 'BalancerV2',
   UniswapV3 = 'UniswapV3',
-  KeyberDMM = 'KeyberDMM',
+  KyberDMM = 'KyberDMM',
   CurveV2 = 'CurveV2',
 
   SushiSwap = 'SushiSwap',
@@ -74,7 +74,7 @@ export enum ProtocolId {
   MakerPSM,
   BalancerV2,
   UniswapV3,
-  KeyberDMM,
+  KyberDMM,
   CurveV2,
 
   SushiSwap,
