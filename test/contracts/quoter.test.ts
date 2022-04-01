@@ -128,7 +128,7 @@ describe('Quoter', function () {
     // balancerV2
     const poolId =
       '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063';
-    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET]!;
+    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET];
     const balancerV2: QuoteFromBalancerV2Params = {
       protocol: Protocol.BalancerV2,
       poolId,
@@ -208,7 +208,7 @@ describe('Quoter', function () {
     // balancerV2
     const poolId =
       '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063';
-    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET]!;
+    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET];
     const balancerV2: QuoteFromBalancerV2Params = {
       protocol: Protocol.BalancerV2,
       poolId,
@@ -280,7 +280,7 @@ describe('Quoter', function () {
     const inputToken: IERC20 = IERC20__factory.connect(USDT, deployer);
     const outputToken: IERC20 = IERC20__factory.connect(USDC, deployer);
     const sellAmount = BigNumber.from(utils.parseUnits('1000', 6));
-    const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
+    const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET];
     const data = utils.defaultAbiCoder.encode(
       [
         'tuple(address registry,address helper,address takerToken,address makerToken)',
@@ -304,7 +304,7 @@ describe('Quoter', function () {
     const outputToken: IERC20 = IERC20__factory.connect(USDC, deployer);
     const sellAmount = BigNumber.from(utils.parseUnits('10', 18));
     // dpp
-    const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
+    const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET][0];
     const offset = 0;
     const data = utils.defaultAbiCoder.encode(
       [
@@ -330,7 +330,7 @@ describe('Quoter', function () {
     const sellAmount = BigNumber.from(utils.parseUnits('1000', 18));
     const poolId =
       '0x06df3b2bbb68adc8b0e302443692037ed9f91b42000000000000000000000063';
-    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET]!;
+    const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[ChainId.MAINNET];
     type QuoteFromBalancerV2Params = {
       poolId: BytesLike;
       vault: string;

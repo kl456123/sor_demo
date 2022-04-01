@@ -9,12 +9,12 @@ export class PoolV2 {
   public readonly tokens: Token[];
   public readonly protocol: Protocol;
   public readonly id: string;
-  public readonly poolData?: any;
+  public readonly poolData?: unknown;
   constructor(
     tokensAmount: TokenAmount[],
     id: string,
     protocol: Protocol = Protocol.Unknow,
-    poolData?: any
+    poolData?: unknown
   ) {
     this.tokens = tokensAmount.map(tokenAmount => tokenAmount.token);
     this.tokensAmount = tokensAmount;
@@ -179,14 +179,11 @@ export class MultiplexRouteWithValidQuote {
     this.quote = quote;
     this.routesWithQuote = routesWithQuote;
     this.routeType = routeType;
-    if (routeType === RouteType.DIRECTSWAP) {
-      invariant(route, 'DIRECTSWAP ROUTE');
-      this.route = route;
-    }
-
     this.quoteAdjustedForGas = quoteAdjustedForGas;
     if (this.routeType === RouteType.DIRECTSWAP) {
-      this.poolIds = this.route!.poolIds;
+      invariant(route, 'DIRECTSWAP ROUTE');
+      this.route = route;
+      this.poolIds = route.poolIds;
     } else {
       this.poolIds = _(this.routesWithQuote)
         .flatMap(routeWithQuote => routeWithQuote.poolIds)

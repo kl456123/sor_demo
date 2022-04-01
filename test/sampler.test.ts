@@ -14,7 +14,7 @@ describe('test quote provider', () => {
   let provider: providers.BaseProvider;
   let sampler: Sampler;
   const chainId = ChainId.MAINNET;
-  const tokens = TOKENS[chainId]!;
+  const tokens = TOKENS[chainId];
 
   beforeAll(() => {
     provider = ethers.providers.getDefaultProvider();
@@ -168,10 +168,18 @@ describe('test quote provider', () => {
     await testGetQuotes(directSwapRoutes, fillAmounts, true);
     // await testGetQuotes(directSwapRoutes, fillAmounts, false);
   });
-  test('test kyber sample', async () => {});
+  test('test kyber sample', async () => {
+    expect;
+  });
 
-  test('test bancor sample', async () => {});
+  test('test bancor sample', async () => {
+    expect;
+  });
 
-  test('test balancerv1 sample', async () => {});
-  test('test native order sample', async () => {});
+  test('test balancerv1 sample', async () => {
+    expect;
+  });
+  test('test native order sample', async () => {
+    expect;
+  });
 });

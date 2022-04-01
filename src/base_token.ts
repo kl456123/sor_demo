@@ -1,6 +1,20 @@
 import { Token } from './entities';
 import { ChainId } from './types';
 
+export function valueByChainId<T>(
+  rest: Partial<{ [key in ChainId]: T }>,
+  defaultValue: T
+) {
+  return {
+    [ChainId.MAINNET]: defaultValue,
+    [ChainId.BSC]: defaultValue,
+    [ChainId.RINKEBY]: defaultValue,
+    [ChainId.ROPSTEN]: defaultValue,
+    [ChainId.POLYGON]: defaultValue,
+    ...(rest || {}),
+  };
+}
+
 const USDC_MAINNET = new Token({
   chainId: ChainId.MAINNET,
   address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
@@ -82,37 +96,44 @@ const AVAX_MAINNET = new Token({
   decimals: 18,
 });
 
-export const WETH9: { [chainId in ChainId]?: Token } = {
-  [ChainId.MAINNET]: WETH_MAINNET,
-};
+export const WETH9 = valueByChainId<Token>({}, WETH_MAINNET);
 
 // used to filter best possible pools
-export const baseTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [
-    USDC_MAINNET,
-    USDT_MAINNET,
-    WBTC_MAINNET,
-    DAI_MAINNET,
-    WETH_MAINNET,
-  ],
-};
-
-export const TOKENS: { [chainId in ChainId]?: { [symbol: string]: Token } } = {
-  [ChainId.MAINNET]: {
-    USDC: USDC_MAINNET,
-    USDT: USDT_MAINNET,
-    WBTC: WBTC_MAINNET,
-    DAI: DAI_MAINNET,
-    WETH: WETH_MAINNET,
-    MATIC: MATIC_MAINNET,
-    UNI: UNI_MAINNET,
-    AAVE: AAVE_MAINNET,
-    AVAX: AVAX_MAINNET,
-    YFI: YFI_MAINNET,
+export const baseTokensByChain = valueByChainId<Token[]>(
+  {
+    [ChainId.MAINNET]: [
+      USDC_MAINNET,
+      USDT_MAINNET,
+      WBTC_MAINNET,
+      DAI_MAINNET,
+      WETH_MAINNET,
+    ],
   },
-};
+  []
+);
+
+export const TOKENS = valueByChainId<{ [name: string]: Token }>(
+  {
+    [ChainId.MAINNET]: {
+      USDC: USDC_MAINNET,
+      USDT: USDT_MAINNET,
+      WBTC: WBTC_MAINNET,
+      DAI: DAI_MAINNET,
+      WETH: WETH_MAINNET,
+      MATIC: MATIC_MAINNET,
+      UNI: UNI_MAINNET,
+      AAVE: AAVE_MAINNET,
+      AVAX: AVAX_MAINNET,
+      YFI: YFI_MAINNET,
+    },
+  },
+  {}
+);
 
 // usd token for gas
-export const usdGasTokensByChain: { [chainId in ChainId]?: Token[] } = {
-  [ChainId.MAINNET]: [USDC_MAINNET, USDT_MAINNET, DAI_MAINNET],
-};
+export const usdGasTokensByChain = valueByChainId<Token[]>(
+  {
+    [ChainId.MAINNET]: [USDC_MAINNET, USDT_MAINNET, DAI_MAINNET],
+  },
+  []
+);

@@ -23,10 +23,12 @@ pragma experimental ABIEncoderV2;
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../LibERC20Token.sol';
+import '../../../libs/LibRichErrors.sol';
 
 contract MixinCurveV2 {
     using LibERC20Token for IERC20;
     using SafeMath for uint256;
+    using LibRichErrors for bytes;
 
     struct CurveBridgeDataV2 {
         address curveAddress;
@@ -61,8 +63,7 @@ contract MixinCurveV2 {
             )
         );
         if (!success) {
-            revert('curvev2 error');
-            // resultData.rrevert();
+            resultData.rrevert();
         }
 
         return buyToken.balanceOf(address(this)).sub(beforeBalance);

@@ -147,7 +147,7 @@ function getTakerFeeAdjustedRateOfOrder(order: Order): BigNumber {
   return adjustedTakerAssetAmount.div(adjustedMakerAssetAmount);
 }
 
-function convertToBigNumber(obj: any, fields: string[]) {
+function convertToBigNumber<T extends Order>(obj: T, fields: string[]) {
   const result = _.assign({}, obj);
   _.each(fields, field => {
     _.update(result, field, (value: string | undefined) => {

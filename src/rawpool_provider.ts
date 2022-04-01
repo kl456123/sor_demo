@@ -56,6 +56,7 @@ export class RawPoolProvider {
     this.balancerPoolProvider = new BalancerPoolProvider();
     this.curvePoolProvider = new CurvePoolProvider();
     const curvePoolProvider = new CurveSubgraphPoolProvider(chainId);
+    curvePoolProvider;
     this.uniswapV3SubgraphPoolProvider = new UniswapV3SubgraphPoolProvider(
       chainId
     );
@@ -120,7 +121,7 @@ export class RawPoolProvider {
     _.forEach(allRawPools, rawPool => {
       const tokens = rawPool.tokens;
       const tokenPairs = _.flatMap(tokens, tokenA =>
-        tokens.map(tokenB => [tokenA!, tokenB!])
+        tokens.map(tokenB => [tokenA, tokenB])
       ).filter(([tokenA, tokenB]) => !(tokenA.address === tokenB.address));
 
       _.forEach(tokenPairs, tokens => {
@@ -137,7 +138,7 @@ export class RawPoolProvider {
     });
     _.map(tokensTopool, (pools, key) => {
       if (this.nodecache.has(key)) {
-        const oldPools = this.nodecache.get<string[]>(key)!;
+        const oldPools = this.nodecache.get<string[]>(key) ?? [];
         pools.concat(oldPools);
       }
       pools = _(pools).compact().uniq().value();
@@ -165,7 +166,7 @@ export class RawPoolProvider {
       if (skip) {
         continue;
       }
-      const tokensAmount = tokens.map(token => new TokenAmount(token!, 10));
+      const tokensAmount = tokens.map(token => new TokenAmount(token, 10));
       const pool = new Pool(
         tokensAmount,
         rawPool.id,
@@ -174,7 +175,7 @@ export class RawPoolProvider {
       );
       poolAddressToPool[rawPool.id] = pool;
       const tokenPairs: TokenPair[] = _.flatMap(tokens, (tokenA): TokenPair[] =>
-        tokens.map(tokenB => [tokenA!, tokenB!])
+        tokens.map(tokenB => [tokenA, tokenB])
       ).filter(([tokenA, tokenB]) => !tokenA.equals(tokenB));
 
       _.forEach(tokenPairs, (tokens: TokenPair) => {

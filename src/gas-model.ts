@@ -21,7 +21,7 @@ export class GasModelFactory {
 
   public async buildGasModel(gasPriceWei: BigNumber, token: Token) {
     // no need to convert from weth to token
-    if (token.equals(WETH9[this.chainId]!)) {
+    if (token.equals(WETH9[this.chainId])) {
       return {
         estimateGasCost: (multiplexRoute: MultiplexRoute) => {
           return this.estimateGas(multiplexRoute, gasPriceWei, this.chainId);
@@ -46,8 +46,7 @@ export class GasModelFactory {
           return new TokenAmount(token, 0);
         }
 
-        const ethToken0 =
-          ethPool.token0.address == WETH9[this.chainId]!.address;
+        const ethToken0 = ethPool.token0.address == WETH9[this.chainId].address;
         // const ethTokenPrice = ethToken0 ? token0Price : token1Price;
         const gasCostInTermsOfQuoteToken = ethToken0
           ? reserve1.mul(gasCostInEth.amount).div(reserve0)
@@ -63,7 +62,7 @@ export class GasModelFactory {
     poolProvider: RawPoolProvider
   ) {
     // use pools from uniswapv2
-    const weth = WETH9[chainId]!;
+    const weth = WETH9[chainId];
     const tokensMap: Record<string, Token> = {};
     tokensMap[weth.address] = weth;
     tokensMap[token.address] = token;
@@ -107,7 +106,7 @@ export class GasModelFactory {
     const hops = multiplexRoute.poolIds.length;
     const gasUse = BASE_SWAP_COST.add(COST_PER_EXTRA_HOP.mul(hops - 1));
     const gasCostInEth = new TokenAmount(
-      WETH9[chainId]!,
+      WETH9[chainId],
       gasUse.mul(gasPriceWei)
     );
     return gasCostInEth;

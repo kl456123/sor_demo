@@ -1,5 +1,8 @@
 import { ethers } from 'hardhat';
 
+import { TOKEN_ADDR } from './constants';
+import { impersonateAccounts, impersonateAndTransfer } from './helpers';
+
 export async function loadFixture(WETH: string) {
   // swapper
   const SwapperFactory = await ethers.getContractFactory('Swapper');
@@ -21,5 +24,46 @@ export async function loadFixture(WETH: string) {
     zeroX
   );
   await fillQuoteTransformer.deployed();
-  return { swapper, bridgeAdapter, fillQuoteTransformer };
+
+  const signers = await ethers.getSigners();
+  const deployer = signers[0];
+  const deployerAddr = await deployer.address;
+
+  // fund address
+  const holders = Object.values(TOKEN_ADDR).map(token => token.holder);
+  await impersonateAccounts(holders);
+  // deposit some tokens
+  for (const holder of holders) {
+    await deployer.sendTransaction({
+      to: holder,
+      value: ethers.utils.parseEther('1'),
+    });
+  }
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('10000', 18),
+    TOKEN_ADDR.DAI,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('10000', 6),
+    TOKEN_ADDR.USDC,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('10000', 18),
+    TOKEN_ADDR.WETH,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('10000', 6),
+    TOKEN_ADDR.USDT,
+    deployerAddr
+  );
+  return {
+    swapper,
+    bridgeAdapter,
+    fillQuoteTransformer,
+    deployer,
+    provider: ethers.provider,
+  };
 }

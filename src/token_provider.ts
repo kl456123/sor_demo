@@ -57,7 +57,7 @@ export class TokenProvider implements ITokenProvider {
           decimals,
           symbol,
         });
-        symbolToToken[symbol] = addressToToken[address]!;
+        symbolToToken[symbol] = addressToToken[address];
       }
 
       logger.info(

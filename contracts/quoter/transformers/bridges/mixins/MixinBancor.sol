@@ -45,7 +45,7 @@ contract MixinBancor {
         IERC20(0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE);
     IWETH private immutable WETH;
 
-    constructor(IWETH weth) public {
+    constructor(IWETH weth) {
         WETH = weth;
     }
 

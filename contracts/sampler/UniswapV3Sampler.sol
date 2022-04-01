@@ -106,7 +106,6 @@ contract UniswapV3Sampler {
 
         for (uint256 i = 0; i < makerTokenAmounts.length; ++i) {
             // Pick the best result from all the paths.
-            bytes memory topUniswapPath;
             uint256 topSellAmount = 0;
             // quoter requires path to be reversed for buys.
             bytes memory uniswapPath = _toUniswapPath(
@@ -131,6 +130,7 @@ contract UniswapV3Sampler {
 
     function _reverseTokenPath(IERC20[] memory tokenPath)
         private
+        pure
         returns (IERC20[] memory reversed)
     {
         reversed = new IERC20[](tokenPath.length);
@@ -141,6 +141,7 @@ contract UniswapV3Sampler {
 
     function _reversePoolPath(uint24[] memory fees)
         private
+        pure
         returns (uint24[] memory reversed)
     {
         reversed = new uint24[](fees.length);

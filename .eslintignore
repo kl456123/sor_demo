@@ -2,3 +2,6 @@ node_modules
 artifacts
 cache
 coverage
+typechain-types/*
+src/types/*
+jest.config.ts

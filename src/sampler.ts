@@ -55,8 +55,9 @@ export type SamplerContractOption<TFunctionParams> = {
   callback?: (callResults: string) => BigNumber[];
 };
 
-export class SamplerContractOperation<TFunctionParams extends any[] | undefined>
-  implements SourceContractOperation
+export class SamplerContractOperation<
+  TFunctionParams extends unknown[] | undefined
+> implements SourceContractOperation
 {
   private readonly functionName: string;
   private readonly functionParams?: TFunctionParams;
@@ -261,9 +262,10 @@ export class SamplerOperation {
         const fragment = this.contractInterface.getFunction(
           'sampleSellsFromDODO'
         );
-        const [_isSellBase, _pool, samples] =
-          this.contractInterface.decodeFunctionResult(fragment, callResults);
-        return samples;
+        return this.contractInterface.decodeFunctionResult(
+          fragment,
+          callResults
+        )[2];
       },
     });
   }
@@ -288,9 +290,10 @@ export class SamplerOperation {
       callback: (callResults): BigNumber[] => {
         const fragment =
           this.contractInterface.getFunction('sampleBuysFromDODO');
-        const [_isSellBase, _pool, samples] =
-          this.contractInterface.decodeFunctionResult(fragment, callResults);
-        return samples;
+        return this.contractInterface.decodeFunctionResult(
+          fragment,
+          callResults
+        )[2];
       },
     });
   }
@@ -314,11 +317,13 @@ export class SamplerOperation {
         takerFillAmounts,
       ],
       callback: (callResults: string): BigNumber[] => {
-        const [_isSellBase, _pool, samples] =
+        const [isSellBase, pool, samples] =
           this.contractInterface.decodeFunctionResult(
             'sampleSellsFromDODOV2',
             callResults
           );
+        isSellBase;
+        pool;
         return samples;
       },
     });
@@ -343,11 +348,13 @@ export class SamplerOperation {
         makerFillAmounts,
       ],
       callback: (callResults: string): BigNumber[] => {
-        const [_isSellBase, _pool, samples] =
+        const [isSellBase, pool, samples] =
           this.contractInterface.decodeFunctionResult(
             'sampleBuysFromDODOV2',
             callResults
           );
+        isSellBase;
+        pool;
         return samples;
       },
     });
@@ -670,11 +677,11 @@ export class SamplerOperation {
         return {
           protocol: route.pool.protocol,
           path: [route.input.address, route.output.address],
-          router: uniswapV2RouterByChain[this.chainId]!,
+          router: uniswapV2RouterByChain[this.chainId],
         };
       }
       case Protocol.UniswapV3: {
-        const { quoter } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId]!;
+        const { quoter } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
         const poolData = route.pool.poolData as UniswapV3PoolData;
         return {
           protocol: route.pool.protocol,
@@ -703,7 +710,7 @@ export class SamplerOperation {
         };
       }
       case Protocol.BalancerV2: {
-        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]!;
+        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId];
         return {
           protocol: Protocol.BalancerV2,
           poolId: route.pool.id,
@@ -721,7 +728,7 @@ export class SamplerOperation {
         };
       }
       case Protocol.DODO: {
-        const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
+        const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET];
         return {
           protocol: Protocol.DODO,
           registry: opts.registry,
@@ -731,7 +738,7 @@ export class SamplerOperation {
         };
       }
       case Protocol.DODOV2: {
-        const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
+        const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET][0];
         const offset = 0;
         return {
           protocol: Protocol.DODOV2,
@@ -742,7 +749,7 @@ export class SamplerOperation {
         };
       }
       case Protocol.Kyber: {
-        const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId]!;
+        const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId];
         return {
           protocol: Protocol.Kyber,
           reserveOffset: 0,
@@ -758,7 +765,7 @@ export class SamplerOperation {
         const paths: string[][] = [[]];
         return {
           protocol: Protocol.Bancor,
-          registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId]!,
+          registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId],
           takerToken: route.input.address,
           makerToken: route.output.address,
           paths,
@@ -766,7 +773,7 @@ export class SamplerOperation {
       }
       case Protocol.MakerPSM: {
         const { psmAddress, gemTokenAddress, ilkIdentifier } =
-          MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId]!;
+          MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId];
         return {
           protocol: Protocol.MakerPSM,
           psmAddress,
@@ -797,7 +804,7 @@ export class SamplerOperation {
       switch (protocol) {
         case Protocol.UniswapV2:
           return this.getUniswapV2BuyQuotes(
-            uniswapV2RouterByChain[this.chainId]!,
+            uniswapV2RouterByChain[this.chainId],
             route.path,
             amounts,
             protocol
@@ -925,7 +932,7 @@ export class Sampler extends SamplerOperation {
     protected samplerOverrides: SamplerOverrides
   ) {
     super(chainId, ERC20BridgeSampler__factory.createInterface());
-    const samplerAddress = contractAddressesByChain[chainId]!.quoter;
+    const samplerAddress = contractAddressesByChain[chainId].quoter;
     if (!samplerAddress) {
       throw new Error(
         `No address for sampler contract on chain id: ${chainId}`

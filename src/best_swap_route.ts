@@ -197,9 +197,9 @@ function bfs(
   );
 
   const sumFn = (tokenAmounts: TokenAmount[]): TokenAmount => {
-    let sum = tokenAmounts[0]!;
+    let sum = tokenAmounts[0];
     for (let i = 1; i < tokenAmounts.length; ++i) {
-      sum = sum.add(tokenAmounts[i]!);
+      sum = sum.add(tokenAmounts[i]);
     }
     return sum;
   };
@@ -211,13 +211,13 @@ function bfs(
   }>();
   // init queue
   for (let i = percents.length; i >= 0; i--) {
-    const percent = percents[i]!;
+    const percent = percents[i];
     if (!percentToSortedQuotes[percent]) {
       continue;
     }
     queue.enqueue({
       percentIndex: i,
-      curRoutes: [percentToSortedQuotes[percent]![0]!],
+      curRoutes: [percentToSortedQuotes[percent][0]],
       remainingPercent: 100 - percent,
     });
   }
@@ -305,15 +305,15 @@ function bfs(
     (total, routeAmount) => {
       return total.add(routeAmount.amount);
     },
-    new TokenAmount(bestSwap[0]!.amount.token, BigNumber.from(0))
+    new TokenAmount(bestSwap[0].amount.token, BigNumber.from(0))
   );
 
   const missingAmount = amount.subtract(totalAmount);
   if (missingAmount.amount.gt(0)) {
     logger.debug(`missing amount: ${missingAmount}`);
     // add dust to the last path
-    bestSwap[bestSwap.length - 1]!.amount =
-      bestSwap[bestSwap.length - 1]!.amount.add(missingAmount);
+    bestSwap[bestSwap.length - 1].amount =
+      bestSwap[bestSwap.length - 1].amount.add(missingAmount);
   }
 
   const routeWithQuote = new MultiplexRouteWithValidQuote({

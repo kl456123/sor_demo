@@ -12,6 +12,7 @@ interface IDODOZoo {
 interface IDODO {
     function querySellBaseToken(uint256 amount) external view returns (uint256);
 
+    // solhint-disable-next-line
     function _TRADE_ALLOWED_() external view returns (bool);
 }
 

@@ -28,7 +28,7 @@ describe('test bestSwapRouteV2', () => {
   const provider: ethers.providers.BaseProvider =
     new ethers.providers.JsonRpcProvider(nodeUrl);
   beforeAll(() => {
-    tokens = TOKENS[chainId]!;
+    tokens = TOKENS[chainId];
     quoterProvider = new QuoterProvider(chainId, provider, poolProvider);
     const tokensAmount = [
       new TokenAmount(tokens.WETH, 10),
@@ -39,7 +39,7 @@ describe('test bestSwapRouteV2', () => {
     directSwapRoutes.push(new DirectSwapRoute(pool, tokens.WETH, tokens.USDT));
   });
   it('test getBestSwapForBatchRoute func', async () => {
-    await poolProvider.getRawPools();
+    await poolProvider.getRawPools([Protocol.UniswapV2]);
     const baseToken = tokens.WETH;
     const distributionPercent = 2;
     const amount = new TokenAmount(

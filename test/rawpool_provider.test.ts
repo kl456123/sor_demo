@@ -8,8 +8,7 @@ jest.setTimeout(100000);
 
 describe('RawPoolProvider Test', () => {
   const rawPoolProvider: RawPoolProvider = new RawPoolProvider(ChainId.MAINNET);
-  beforeAll(() => {});
-  const tokens = TOKENS[ChainId.MAINNET]!;
+  const tokens = TOKENS[ChainId.MAINNET];
 
   it('getRawPools Test', async () => {
     const protocols: Protocol[] = [
@@ -35,5 +34,7 @@ describe('RawPoolProvider Test', () => {
     }
   });
 
-  it('getPools Test', async () => {});
+  it('getPools Test', async () => {
+    expect;
+  });
 });

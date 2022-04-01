@@ -1,6 +1,5 @@
 import { BigNumber, BigNumberish, BytesLike, ethers, utils } from 'ethers';
 
-import { ICurve__factory } from '../typechain-types/factories/ICurve__factory';
 import { Quoter__factory } from '../typechain-types/factories/Quoter__factory';
 
 import {
@@ -46,9 +45,28 @@ export type BridgeOrder = {
   bridgeData: BridgeData;
 };
 
-export type LimitOrder = {};
+export type LimitOrder = {
+  makerToken: string;
+  takerToken: string;
+  makerAmount: BigNumber;
+  takerAmount: BigNumber;
+  takerTokenFeeAmount: BigNumber;
+  taker: string;
+  maker: string;
+  expiry: BigNumberish;
+  salt: BigNumber;
+};
 
-export type RfqOrder = {};
+export type RfqOrder = {
+  makerToken: string;
+  takerToken: string;
+  makerAmount: BigNumber;
+  takerAmount: BigNumber;
+  taker: string;
+  maker: string;
+  expiry: BigNumberish;
+  salt: BigNumber;
+};
 
 export type BridgeData = QuoteParams;
 
@@ -307,7 +325,6 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
       const tokens = curveInfo.tokens.map(token => token.address);
       const fromTokenIdx = tokens.indexOf(params.fromToken);
       const toTokenIdx = tokens.indexOf(params.toToken);
-      const curveInterface = ICurve__factory.createInterface();
       const paramsData = utils.defaultAbiCoder.encode(
         [
           'tuple(address poolAddress,bytes4 sellQuoteFunctionSelector,bytes4 buyQuoteFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
@@ -328,7 +345,7 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
       );
     }
     case Protocol.DODO: {
-      const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
+      const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET];
       const paramsData = utils.defaultAbiCoder.encode(
         [
           'tuple(address registry,address helper,address takerToken,address makerToken)',
@@ -348,7 +365,7 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
       );
     }
     case Protocol.DODOV2: {
-      const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
+      const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET][0];
       const offset = 0;
       const paramsData = utils.defaultAbiCoder.encode(
         [
@@ -380,7 +397,6 @@ export type Transformation = {
 };
 
 export function encodeBridgeOrder(params: BridgeData): BytesLike {
-  const contractInterface = Quoter__factory.createInterface();
   switch (params.protocol) {
     case Protocol.Balancer: {
       return utils.defaultAbiCoder.encode(['address'], [params.poolAddress]);
@@ -434,15 +450,13 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
       );
     }
     case Protocol.DODO: {
-      const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
+      const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET];
       return utils.defaultAbiCoder.encode(
         ['address', 'address', 'bool'],
         [opts.helper, params.pool, params.isSellBase]
       );
     }
     case Protocol.DODOV2: {
-      const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
-      const offset = 0;
       return utils.defaultAbiCoder.encode(
         ['address pool', 'bool isSellBase'],
         [params.pool, params.isSellBase]
@@ -481,31 +495,33 @@ export function encodeTransformer(
     switch (transformerParams.transformerType) {
       case TransformerType.FillQuoteTransformer: {
         const fqtData = transformerParams.transformData;
-        let bridgeOrderData;
-        if (fqtData.orderType == OrderType.Bridge) {
-          bridgeOrderData = encodeBridgeOrder(fqtData.bridgeOrder!.bridgeData);
-        }
+        let data = '';
+        if (fqtData.orderType == OrderType.Bridge && fqtData.bridgeOrder) {
+          const bridgeOrderData = encodeBridgeOrder(
+            fqtData.bridgeOrder.bridgeData
+          );
 
-        const bridgeOrder = {
-          source: fqtData.bridgeOrder!.source,
-          makerTokenAmount: fqtData.bridgeOrder!.makerTokenAmount,
-          takerTokenAmount: fqtData.bridgeOrder!.takerTokenAmount,
-          bridgeData: bridgeOrderData,
-        };
-        const data = utils.defaultAbiCoder.encode(
-          [
-            'tuple(uint8 side, address sellToken, address buyToken, tuple(bytes32 source, uint256 takerTokenAmount, uint256 makerTokenAmount, bytes bridgeData) bridgeOrder, uint256 fillAmount)',
-          ],
-          [
-            {
-              side: fqtData.side,
-              sellToken: fqtData.sellToken,
-              buyToken: fqtData.buyToken,
-              bridgeOrder,
-              fillAmount: fqtData.fillAmount,
-            },
-          ]
-        );
+          const bridgeOrder = {
+            source: fqtData.bridgeOrder.source,
+            makerTokenAmount: fqtData.bridgeOrder.makerTokenAmount,
+            takerTokenAmount: fqtData.bridgeOrder.takerTokenAmount,
+            bridgeData: bridgeOrderData,
+          };
+          data = utils.defaultAbiCoder.encode(
+            [
+              'tuple(uint8 side, address sellToken, address buyToken, tuple(bytes32 source, uint256 takerTokenAmount, uint256 makerTokenAmount, bytes bridgeData) bridgeOrder, uint256 fillAmount)',
+            ],
+            [
+              {
+                side: fqtData.side,
+                sellToken: fqtData.sellToken,
+                buyToken: fqtData.buyToken,
+                bridgeOrder,
+                fillAmount: fqtData.fillAmount,
+              },
+            ]
+          );
+        }
         transformations.push({
           transformer: transformerParams.transformer,
           data,

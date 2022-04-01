@@ -28,7 +28,6 @@ export class CurvePoolProvider implements IRawPoolProvider {
 }
 
 const PAGE_SIZE = 1000;
-const threshold = 10000;
 
 const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]:
@@ -115,7 +114,7 @@ export class CurveSubgraphPoolProvider implements IRawPoolProvider {
                 }>(query2, { pageSize: PAGE_SIZE, id: lastId });
                 pairsPage = poolsResult.exchanges;
                 pairs = pairs.concat(pairsPage);
-                lastId = pairs[pairs.length - 1]!.id;
+                lastId = pairs[pairs.length - 1].id;
               },
               {
                 retries: this.retries,

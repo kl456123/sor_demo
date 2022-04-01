@@ -68,7 +68,8 @@ contract BalancerV2Quoter {
                 swapFunds
             )
         returns (int256[] memory amounts) {
-            makerTokenAmount = uint256(amounts[0]);
+            int256 amountIntoPool = amounts[0];
+            takerTokenAmount = uint256(amountIntoPool);
         } catch (bytes memory) {}
     }
 

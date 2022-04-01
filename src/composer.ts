@@ -34,7 +34,7 @@ export class Composer {
         // the same input tokens and output tokens for each route here
         const inputToken = routes[0].path[i];
         const outputToken = routes[0].path[i + 1];
-        const outputTokens = pools.map(_pool => outputToken);
+        const outputTokens = pools.map(() => outputToken);
         const directSwapRoutes = pools.map(
           pool => new DirectSwapRoute(pool, inputToken, outputToken)
         );

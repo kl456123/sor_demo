@@ -191,7 +191,7 @@ export async function getCandidatePools({
 
   // need to quote weth for gas estimation
   let top2EthQuoteTokenPool: RawPool[] = [];
-  const wethAddress = WETH9[chainId]?.address.toLowerCase();
+  const wethAddress = WETH9[chainId].address.toLowerCase();
   if (
     tokenOut.symbol != 'WETH' &&
     tokenOut.symbol != 'ETH' &&
@@ -200,13 +200,13 @@ export async function getCandidatePools({
     top2EthQuoteTokenPool = _(subgraphPoolsSorted)
       .filter(subgraphPool => {
         if (tradeType == TradeType.EXACT_INPUT) {
-          return [wethAddress!, tokenOutAddress].every(a =>
+          return [wethAddress, tokenOutAddress].every(a =>
             subgraphPool.tokens.some(
               b => b.address.toLowerCase() === a.toLowerCase()
             )
           );
         } else {
-          return [wethAddress!, tokenInAddress].every(a =>
+          return [wethAddress, tokenInAddress].every(a =>
             subgraphPool.tokens.some(
               b => b.address.toLowerCase() === a.toLowerCase()
             )

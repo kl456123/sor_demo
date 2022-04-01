@@ -5,6 +5,7 @@ import { Interface } from '@ethersproject/abi';
 import { BigNumber, providers } from 'ethers';
 import _ from 'lodash';
 
+import { valueByChainId } from './base_token';
 import { logger } from './logging';
 import { ChainId } from './types';
 import {
@@ -21,7 +22,7 @@ export type CallParams<TFunctionParams> = {
 };
 
 export interface IMulticallProvider {
-  call<TFunctionParams extends any[] | undefined, TReturn = any>(
+  call<TFunctionParams extends unknown[] | undefined, TReturn = unknown>(
     params: CallParams<TFunctionParams>
   ): Promise<{
     blockNumber: BigNumber;
@@ -30,9 +31,12 @@ export interface IMulticallProvider {
 }
 
 const UNISWAP_MULTICALL_ADDRESS = '0x1F98415757620B543A52E61c46B32eB19261F984';
-const contractAddressByChain: { [chain in ChainId]?: string } = {
-  [ChainId.MAINNET]: UNISWAP_MULTICALL_ADDRESS,
-};
+const contractAddressByChain = valueByChainId<string>(
+  {
+    [ChainId.MAINNET]: UNISWAP_MULTICALL_ADDRESS,
+  },
+  UNISWAP_MULTICALL_ADDRESS
+);
 
 type Result<TReturn> = {
   success: boolean;
@@ -48,14 +52,17 @@ export class MulticallProvider implements IMulticallProvider {
     protected provider: providers.BaseProvider
   ) {
     this.multicallContract = UniswapInterfaceMulticall__factory.connect(
-      contractAddressByChain[this.chainId]!,
+      contractAddressByChain[this.chainId],
       this.provider
     );
     this.gasLimitPerCall = 10_000_000;
     this.multicallChunk = 100;
   }
 
-  public async call<TFunctionParams extends any[] | undefined, TReturn = any>(
+  public async call<
+    TFunctionParams extends unknown[] | undefined,
+    TReturn = unknown
+  >(
     params: CallParams<TFunctionParams>
   ): Promise<{
     blockNumber: BigNumber;

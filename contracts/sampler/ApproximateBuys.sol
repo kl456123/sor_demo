@@ -133,7 +133,7 @@ contract ApproximateBuys {
         uint256 numerator,
         uint256 denominator,
         uint256 target
-    ) internal view returns (uint256 partialAmount) {
+    ) internal pure returns (uint256 partialAmount) {
         if (numerator == 0 || target == 0 || denominator == 0) return 0;
         uint256 c = numerator * target;
         if (c / numerator != target) return 0;

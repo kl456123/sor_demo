@@ -95,7 +95,7 @@ export class UniswapV2SubgraphPoolProvider implements IRawPoolProvider {
                 }>(query2, { pageSize: PAGE_SIZE, id: lastId });
                 pairsPage = poolsResult.pairs;
                 pairs = pairs.concat(pairsPage);
-                lastId = pairs[pairs.length - 1]!.id;
+                lastId = pairs[pairs.length - 1].id;
               },
               {
                 retries: this.retries,

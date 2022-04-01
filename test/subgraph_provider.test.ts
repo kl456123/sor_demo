@@ -1,9 +1,9 @@
 import _ from 'lodash';
 
 import {
-  StaticFileSubgraphProvider,
-  SubgraphPoolProvider,
-} from '../src/subgraph_provider';
+  UniswapV2StaticFileSubgraphProvider,
+  UniswapV2SubgraphPoolProvider,
+} from '../src/markets/uniswapv2_subgraph_provider';
 import { ChainId } from '../src/types';
 
 const expectAddress = (address: string) => {
@@ -12,9 +12,9 @@ const expectAddress = (address: string) => {
 };
 
 describe('test subgraph provider', () => {
-  let subgraphPoolProvider: SubgraphPoolProvider;
+  let subgraphPoolProvider: UniswapV2SubgraphPoolProvider;
   beforeAll(() => {
-    subgraphPoolProvider = new SubgraphPoolProvider(ChainId.MAINNET);
+    subgraphPoolProvider = new UniswapV2SubgraphPoolProvider(ChainId.MAINNET);
   });
 
   test('succeeds to retrieve pools from subgraph', async () => {
@@ -25,9 +25,9 @@ describe('test subgraph provider', () => {
 });
 
 describe.only('test static file subgraph provider', () => {
-  let subgraphPoolProvider: StaticFileSubgraphProvider;
+  let subgraphPoolProvider: UniswapV2StaticFileSubgraphProvider;
   beforeAll(() => {
-    subgraphPoolProvider = new StaticFileSubgraphProvider();
+    subgraphPoolProvider = new UniswapV2StaticFileSubgraphProvider();
   });
   test('get pools from local static file', async () => {
     const rawPools = await subgraphPoolProvider.getPools();
@@ -35,10 +35,9 @@ describe.only('test static file subgraph provider', () => {
 
     // assert sample
     const rawPool = _.sample(rawPools)!;
-    expect(rawPool.supply).toBeGreaterThan(0);
     expect(rawPool.reserve).toBeGreaterThan(0);
     expectAddress(rawPool.id);
-    expectAddress(rawPool.token0.id);
-    expectAddress(rawPool.token1.id);
+    expectAddress(rawPool.tokens[0].address);
+    expectAddress(rawPool.tokens[1].address);
   });
 });

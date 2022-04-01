@@ -52,11 +52,14 @@ contract DODOV2Quoter {
     function quoteBuyFromDODOV2(
         uint256 makerTokenAmount,
         bytes calldata wrappedCallData
-    ) public view returns (uint256 takerTokenAmount) {
+    ) public pure returns (uint256 takerTokenAmount) {
+        makerTokenAmount;
+        takerTokenAmount;
         QuoteFromDODOV2Params memory params = abi.decode(
             wrappedCallData,
             (QuoteFromDODOV2Params)
         );
+        params;
     }
 
     function _getNextDODOV2Pool(QuoteFromDODOV2Params memory params)

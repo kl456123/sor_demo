@@ -24,15 +24,18 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '../IWETH.sol';
 import '../LibERC20Token.sol';
+import '../../../libs/LibRichErrors.sol';
 
 contract MixinCurve {
     using SafeMath for uint256;
     using LibERC20Token for IERC20;
+    using LibRichErrors for bytes;
 
     /// @dev Mainnet address of the WETH contract.
+    // solhint-disable-next-line
     IWETH private immutable WETH;
 
-    constructor(IWETH weth) public {
+    constructor(IWETH weth) {
         WETH = weth;
     }
 
@@ -74,8 +77,7 @@ contract MixinCurve {
             )
         );
         if (!success) {
-            revert('curve error');
-            // resultData.rrevert();
+            resultData.rrevert();
         }
 
         if (address(buyToken) == address(WETH)) {

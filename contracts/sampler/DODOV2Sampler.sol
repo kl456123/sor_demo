@@ -153,7 +153,7 @@ contract DODOV2Sampler is SamplerUtils, ApproximateBuys {
         bytes memory, /* makerTokenData */
         uint256 sellAmount
     ) private view returns (uint256) {
-        (address takerToken, address pool, bool sellBase) = abi.decode(
+        (, address pool, bool sellBase) = abi.decode(
             takerTokenData,
             (address, address, bool)
         );

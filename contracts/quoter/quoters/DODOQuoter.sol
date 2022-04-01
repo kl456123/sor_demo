@@ -27,7 +27,7 @@ contract DODOQuoter {
     {
         QuoteFromDODOParams memory params;
         params = abi.decode(wrappedCallData, (QuoteFromDODOParams));
-        address pool = IDODOZoo(params.registry).getDODO(
+        pool = IDODOZoo(params.registry).getDODO(
             params.takerToken,
             params.makerToken
         );
@@ -63,7 +63,7 @@ contract DODOQuoter {
         bytes calldata wrappedCallData
     )
         public
-        view
+        pure
         returns (
             uint256 takerTokenAmount,
             address pool,
@@ -71,7 +71,11 @@ contract DODOQuoter {
         )
     {
         QuoteFromDODOParams memory params;
+        makerTokenAmount;
         params = abi.decode(wrappedCallData, (QuoteFromDODOParams));
         // TODO (approximatly calculation)
+        takerTokenAmount;
+        pool;
+        sellBase;
     }
 }

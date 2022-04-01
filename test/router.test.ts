@@ -2,6 +2,7 @@ import { ethers, providers } from 'ethers';
 
 import { TOKENS } from '../src/base_token';
 import { Token, TokenAmount } from '../src/entities';
+import { MultiplexRouteWithValidQuote } from '../src/entitiesv2';
 import { AlphaRouter } from '../src/router';
 import { ChainId, TradeType } from '../src/types';
 
@@ -14,10 +15,11 @@ describe('test AlphaRouter', () => {
   let tokens;
   let amount: TokenAmount;
   let quoteToken: Token;
+  const transformerAddr = '';
   beforeAll(() => {
     chainId = ChainId.MAINNET;
     provider = ethers.getDefaultProvider('mainnet');
-    alphaRouter = new AlphaRouter({ chainId, provider });
+    alphaRouter = new AlphaRouter({ chainId, provider, transformerAddr });
     tokens = TOKENS[chainId]!;
     amount = new TokenAmount(
       tokens.USDC,
@@ -27,21 +29,24 @@ describe('test AlphaRouter', () => {
   });
 
   test('test route of sell quote', async () => {
-    const swapRoute = await alphaRouter.route(
+    const swapRouteOrNull = await alphaRouter.route(
       amount,
       quoteToken,
       TradeType.EXACT_INPUT
     );
-    expect(swapRoute).not.toBeUndefined();
-    expect(swapRoute!.blockNumber).toBeGreaterThanOrEqual(0);
-    expect(swapRoute!.quote.greatThan(0)).toBeTruthy();
-    expect(swapRoute!.quoteAdjustedForGas.greatThan(0)).toBeTruthy();
-    const routeAmounts = swapRoute!.routes;
+    expect(swapRouteOrNull).not.toBeUndefined();
+    const swapRoute = swapRouteOrNull!;
+    expect(swapRoute.blockNumber).toBeGreaterThanOrEqual(0);
+    expect(swapRoute.routeWithQuote.quote.greatThan(0)).toBeTruthy();
+    expect(
+      swapRoute.routeWithQuote.quoteAdjustedForGas.greatThan(0)
+    ).toBeTruthy();
+    const routeAmounts = swapRoute.routeWithQuote.routesWithQuote;
     expect(routeAmounts.length).toBeGreaterThan(0);
-    routeAmounts.map(routeAmount => {
+    routeAmounts.map((routeAmount: MultiplexRouteWithValidQuote) => {
       expect(routeAmount.amount.greatThan(0)).toBeTruthy();
       expect(routeAmount.quote.greatThan(0)).toBeTruthy();
-      expect(routeAmount.route.path.length).toBeGreaterThanOrEqual(2);
+      expect(routeAmount.routesWithQuote.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

@@ -83,12 +83,12 @@ export class AlphaRouter implements IRouter {
 
     const { firstDistributionPercent, secondDistributionPercent } =
       routingConfig;
-    const [firstPercents, _firstAmounts] = getAmountDistribution(
+    const [firstPercents] = getAmountDistribution(
       amount,
       firstDistributionPercent
     );
 
-    const [secondPercents, _secondAmounts] = getAmountDistribution(
+    const [secondPercents] = getAmountDistribution(
       amount,
       secondDistributionPercent
     );
@@ -137,7 +137,7 @@ export class AlphaRouter implements IRouter {
       logger.error(`Could not find route.`);
       return undefined;
     }
-    const { routeWithQuote } = swapRoutes!;
+    const { routeWithQuote } = swapRoutes;
     swapRoutes.calldata =
       this.quoteConsumer.encodeBatchSellRoute(routeWithQuote);
 

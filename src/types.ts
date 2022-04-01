@@ -117,7 +117,7 @@ export type RawPool = {
   id: string;
   tokens: RawToken[];
   reserve: number;
-  poolData?: any;
+  poolData?: unknown;
 };
 
 ////////////////////////////////

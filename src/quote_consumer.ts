@@ -20,29 +20,15 @@ import {
 } from './entitiesv2';
 import { UniswapV3PoolData } from './markets/uniswapv3_subgraph_provider';
 import {
-  BatchSellParams,
   BatchSellSubcall,
   createTransformations,
   encodeMultiplexBatch,
   encodeMultiplexMultiHop,
-  MultiHopSellParams,
   MultiHopSellSubcall,
   MultiplexSubcallType,
   QuoteParams,
-  TransformerParams,
 } from './multiplex_encoder';
 import { ChainId, Protocol } from './types';
-
-type SubcallType = {
-  id: MultiplexSubcallType;
-  data:
-    | QuoteParams
-    | MultiHopSellParams
-    | TransformerParams[]
-    | BatchSellParams;
-};
-
-const max = ethers.constants.MaxUint256;
 
 export class QuoteConsumer {
   private readonly base = BigNumber.from(2).pow(255);
@@ -62,11 +48,11 @@ export class QuoteConsumer {
         return {
           protocol: route.pool.protocol,
           path: [route.input.address, route.output.address],
-          router: uniswapV2RouterByChain[this.chainId]!,
+          router: uniswapV2RouterByChain[this.chainId],
         };
       }
       case Protocol.UniswapV3: {
-        const { router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId]!;
+        const { router } = UNISWAPV3_CONFIG_BY_CHAIN_ID[this.chainId];
         const poolData = route.pool.poolData as UniswapV3PoolData;
         return {
           protocol: route.pool.protocol,
@@ -77,7 +63,6 @@ export class QuoteConsumer {
       }
       case Protocol.CurveV2:
       case Protocol.Curve: {
-        const poolAddress = route.pool.id;
         return {
           protocol: route.pool.protocol,
           poolAddress: route.pool.id,
@@ -86,7 +71,7 @@ export class QuoteConsumer {
         };
       }
       case Protocol.BalancerV2: {
-        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId]!;
+        const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId];
         return {
           protocol: Protocol.BalancerV2,
           poolId: route.pool.id,
@@ -104,7 +89,7 @@ export class QuoteConsumer {
         };
       }
       case Protocol.DODO: {
-        const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET]!;
+        const opts = DODOV1_CONFIG_BY_CHAIN_ID[ChainId.MAINNET];
         return {
           protocol: Protocol.DODO,
           registry: opts.registry,
@@ -116,7 +101,7 @@ export class QuoteConsumer {
         };
       }
       case Protocol.DODOV2: {
-        const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET]![0];
+        const registry = DODOV2_FACTORIES_BY_CHAIN_ID[ChainId.MAINNET][0];
         const offset = 0;
         return {
           protocol: Protocol.DODOV2,
@@ -129,7 +114,7 @@ export class QuoteConsumer {
         };
       }
       case Protocol.Kyber: {
-        const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId]!;
+        const opts = KYBER_CONFIG_BY_CHAIN_ID[this.chainId];
         return {
           protocol: Protocol.Kyber,
           reserveOffset: 0,
@@ -145,7 +130,7 @@ export class QuoteConsumer {
         const paths: string[][] = [[]];
         return {
           protocol: Protocol.Bancor,
-          registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId]!,
+          registry: BANCOR_REGISTRY_BY_CHAIN_ID[this.chainId],
           takerToken: route.input.address,
           makerToken: route.output.address,
           paths,
@@ -153,7 +138,7 @@ export class QuoteConsumer {
       }
       case Protocol.MakerPSM: {
         const { psmAddress, gemTokenAddress, ilkIdentifier } =
-          MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId]!;
+          MAKER_PSM_INFO_BY_CHAIN_ID[this.chainId];
         return {
           protocol: Protocol.MakerPSM,
           psmAddress,
@@ -271,8 +256,6 @@ export class QuoteConsumer {
     const subcalls = this.createMultiHopSellSubcall(routeWithQuote);
 
     const encodedSubcalls = encodeMultiplexMultiHop(subcalls);
-    const takerToken = routeWithQuote.amount.token.address;
-    const makerToken = routeWithQuote.quote.token.address;
     const tokens = routeWithQuote.routesWithQuote.map(
       routeWithQuote => routeWithQuote.amount.token.address
     );

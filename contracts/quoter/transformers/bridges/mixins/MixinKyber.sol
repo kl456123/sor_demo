@@ -59,7 +59,7 @@ contract MixinKyber {
     /// @dev Mainnet address of the WETH contract.
     IWETH private immutable WETH;
 
-    constructor(IWETH weth) public {
+    constructor(IWETH weth) {
         WETH = weth;
     }
 

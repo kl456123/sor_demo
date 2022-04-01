@@ -12,7 +12,7 @@ export type CurveInfo = {
   exchangeFunctionSelector?: CurveFunctionSelectors;
 };
 
-const tokens = TOKENS[ChainId.MAINNET]!;
+const tokens = TOKENS[ChainId.MAINNET];
 
 const TUSD = new Token({
   chainId: ChainId.MAINNET,

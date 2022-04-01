@@ -22,9 +22,7 @@ pragma experimental ABIEncoderV2;
 
 import './interfaces/IBancor.sol';
 
-contract CompilerHack {}
-
-contract BancorSampler is CompilerHack {
+contract BancorSampler {
     /// @dev Base gas limit for Bancor calls.
     uint256 private constant BANCOR_CALL_GAS = 300e3; // 300k
 
@@ -103,13 +101,21 @@ contract BancorSampler is CompilerHack {
         uint256[] memory makerTokenAmounts
     )
         public
-        view
+        pure
         returns (
             address bancorNetwork,
             address[] memory path,
             uint256[] memory takerTokenAmounts
         )
-    {}
+    {
+        opts;
+        takerToken;
+        makerToken;
+        makerTokenAmounts;
+        bancorNetwork;
+        path;
+        takerTokenAmounts;
+    }
 
     function _findBestPath(
         BancorSamplerOpts memory opts,
@@ -117,6 +123,8 @@ contract BancorSampler is CompilerHack {
         address makerToken,
         uint256[] memory takerTokenAmounts
     ) internal view returns (address bancorNetwork, address[] memory path) {
+        takerToken;
+        makerToken;
         bancorNetwork = opts.registry.getAddress(
             opts.registry.BANCOR_NETWORK()
         );

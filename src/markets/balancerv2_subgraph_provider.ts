@@ -29,7 +29,7 @@ export class BalancerV2PoolProvider implements IRawPoolProvider {
     chainId: ChainId,
     private readonly _topPoolsFetched: number = 250
   ) {
-    const subgraphUrl: string = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId]!;
+    const subgraphUrl: string = BALANCER_V2_SUBGRAPH_URL_BY_CHAIN[chainId];
     this.client = new GraphQLClient(subgraphUrl);
   }
 

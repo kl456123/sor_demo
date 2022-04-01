@@ -21,6 +21,7 @@ abstract contract MultiplexQuoter {
             wrappedCallData,
             (bytes4, bytes)
         );
+        params;
         args.inputTokenAmount = sellAmount;
         try IQuoteERC20Feature(address(this))._quoteERC20(args) returns (
             uint256 outputTokenAmount
