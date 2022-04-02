@@ -61,6 +61,26 @@ export async function loadFixture(WETH: string) {
     TOKEN_ADDR.USDT,
     deployerAddr
   );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('100000', 18),
+    TOKEN_ADDR.AAVE,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('1000000', 18),
+    TOKEN_ADDR.UNI,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('100000000', 18),
+    TOKEN_ADDR.MATIC,
+    deployerAddr
+  );
+  await impersonateAndTransfer(
+    ethers.utils.parseUnits('400', 18),
+    TOKEN_ADDR.MATIC,
+    deployerAddr
+  );
   return {
     swapper,
     bridgeAdapter,
