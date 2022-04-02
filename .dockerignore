@@ -1,1 +1,8 @@
 node_modules
+build
+cache
+src/types
+artifacts
+typechain-types
+coverage
+coverage.json

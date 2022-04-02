@@ -153,7 +153,7 @@ describe('Swaper', function () {
     expect(after.sub(before).gt(0)).toBeTruthy();
   });
 
-  it.only('MultiplexBatchSell Test', async () => {
+  it('MultiplexBatchSell Test', async () => {
     const percents = [30, 30, 40];
     const sellAmount = BigNumber.from(utils.parseUnits('1000', 18));
     const takerToken = DAI;

@@ -36,7 +36,7 @@ export async function loadFixture(WETH: string) {
   for (const holder of holders) {
     await deployer.sendTransaction({
       to: holder,
-      value: ethers.utils.parseEther('1'),
+      value: ethers.utils.parseEther('100'),
     });
   }
   await impersonateAndTransfer(
