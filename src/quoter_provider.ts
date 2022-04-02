@@ -16,6 +16,10 @@ export type RouteWithQuotes = [MultiplexRoute, AmountQuote[]];
 
 const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
 
+export type CallOptions = {
+    blockNumber?: number
+}
+
 export class QuoterProvider {
   protected sampler: Sampler;
   public gasPriceProvider: IGasPriceProvider;
@@ -34,22 +38,25 @@ export class QuoterProvider {
 
   public async getQuotesManyExactIn(
     amountIns: TokenAmount[],
-    routes: MultiplexRoute[]
+    routes: MultiplexRoute[],
+    options: CallOptions
   ): Promise<RouteWithQuotes[]> {
-    return this.getQuotes(amountIns, routes, TradeType.EXACT_INPUT);
+    return this.getQuotes(amountIns, routes, TradeType.EXACT_INPUT, options);
   }
 
   public async getQuotesManyExactOut(
     amountOuts: TokenAmount[],
-    routes: MultiplexRoute[]
+    routes: MultiplexRoute[],
+    options: CallOptions
   ): Promise<RouteWithQuotes[]> {
-    return this.getQuotes(amountOuts, routes, TradeType.EXACT_OUTPUT);
+    return this.getQuotes(amountOuts, routes, TradeType.EXACT_OUTPUT, options);
   }
 
   private async getQuotes(
     amounts: TokenAmount[],
     routes: MultiplexRoute[],
-    tradeType: TradeType
+    tradeType: TradeType,
+      options: CallOptions
   ): Promise<RouteWithQuotes[]> {
     // TODO
     const directSwapRoutes = routes as DirectSwapRoute[];
@@ -60,11 +67,11 @@ export class QuoterProvider {
     let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {
       [dexQuotes] = await this.sampler.executeAsync(
-        this.sampler.getSellQuotes(fillAmounts, samplerRoutes)
+          options,this.sampler.getSellQuotes(fillAmounts, samplerRoutes)
       );
     } else {
       [dexQuotes] = await this.sampler.executeAsync(
-        this.sampler.getBuyQuotes(fillAmounts, samplerRoutes)
+          options, this.sampler.getBuyQuotes(fillAmounts, samplerRoutes)
       );
     }
 

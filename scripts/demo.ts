@@ -65,6 +65,9 @@ async function main() {
   if (!swapRoute) {
     return;
   }
+
+  const blockNumberForQuote = swapRoute.blockNumber;
+  const blockNumberForSwap = fixture.blockNumber;
   if (swapRoute.calldata) {
     await dexAggregator.swap(swapperAddress, swapRoute.calldata, deployerAddr);
   }
@@ -72,8 +75,8 @@ async function main() {
   const after = await outputToken.balanceOf(deployerAddr);
   const actualVal = after.sub(before);
   const expectVal = swapRoute.routeWithQuote.quote.amount;
-  logger.info(`real: ${actualVal.toString()}`);
-  logger.info(`quote: ${expectVal.toString()}`);
+  logger.info(`[blocknumber: ${blockNumberForSwap}]swap: ${actualVal.toString()}`);
+  logger.info(`[blocknumber: ${blockNumberForQuote}]quote: ${expectVal.toString()}`);
   const error = actualVal.sub(expectVal).mul(10000).div(expectVal);
   // ten thousand percent(0.0001%)
   logger.info(`error: ${error.toNumber() / 100}%`);

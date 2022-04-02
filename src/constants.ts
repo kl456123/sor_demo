@@ -1,6 +1,6 @@
 import { Protocol, ProtocolId, RoutingConfig } from './types';
 
-export const DEFAULT_ROUTER_CONFIG: RoutingConfig = {
+export const DEFAULT_ROUTER_CONFIG: Omit<RoutingConfig, 'blockNumber'>= {
   poolSelections: {
     topN: 10,
     topNSecondHop: 6,

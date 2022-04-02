@@ -95,6 +95,6 @@ export class DexAggregator {
       data: calldata,
       value: 0,
     };
-    await signer.sendTransaction(tx);
+    return await signer.sendTransaction(tx);
   }
 }

@@ -140,7 +140,7 @@ export type SwapConfig = {
 };
 
 export type RoutingConfig = {
-  blockNumber?: number;
+  blockNumber: number;
   maxSplits: number;
   minSplits: number;
   firstDistributionPercent: number;

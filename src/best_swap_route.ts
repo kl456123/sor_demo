@@ -342,6 +342,7 @@ export async function getBestSwapForBatchRoute(
     batchRoute.routes as DirectSwapRoute[],
     percents,
     tradeType,
+  routingConfig,
     quoterProvider
   );
   if (!routesWithValidQuotes.length) {
@@ -369,6 +370,7 @@ async function quoteForDirectRoute(
   routes: DirectSwapRoute[],
   percents: number[],
   tradeType: TradeType,
+  routingConfig: RoutingConfig,
   quoterProvider: QuoterProvider
 ): Promise<MultiplexRouteWithValidQuote[]> {
   const quoteFn =
@@ -376,7 +378,7 @@ async function quoteForDirectRoute(
       ? quoterProvider.getQuotesManyExactIn.bind(quoterProvider)
       : quoterProvider.getQuotesManyExactOut.bind(quoterProvider);
   const amounts = percents.map(percent => amount.multiply(percent).divide(100));
-  const routesWithQuote = await quoteFn(amounts, routes);
+  const routesWithQuote = await quoteFn(amounts, routes, {blockNumber: routingConfig.blockNumber});
   const routesWithValidQuotes = await postprocess(
     routesWithQuote,
     percents,
@@ -426,7 +428,7 @@ export async function getBestSwapRouteV2(
   routingConfig: RoutingConfig,
   quoterProvider: QuoterProvider
 ): Promise<SwapRouteV2 | undefined> {
-  const blockNumber = 0;
+  const blockNumber = routingConfig.blockNumber;
 
   const batchRoute = route as BatchRoute;
 
