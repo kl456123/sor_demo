@@ -151,21 +151,23 @@ export class DODOV2SubgraphPoolProvider implements IRawPoolProvider {
 }
 
 const filterPools = (pools: RawSubgraphPool[], protocol: string): RawPool[] => {
-  return pools.map(pool => ({
-    id: pool.id.toLowerCase(),
-    tokens: [
-      {
-        address: pool.baseToken.id.toLowerCase(),
-        symbol: pool.baseToken.symbol,
-      },
-      {
-        address: pool.quoteToken.id.toLowerCase(),
-        symbol: pool.quoteToken.symbol,
-      },
-    ],
-    reserve:
-      parseFloat(pool.untrackedBaseVolume) +
-      parseFloat(pool.untrackedQuoteVolume),
-    protocol,
-  }));
+  return pools
+    .map(pool => ({
+      id: pool.id.toLowerCase(),
+      tokens: [
+        {
+          address: pool.baseToken.id.toLowerCase(),
+          symbol: pool.baseToken.symbol,
+        },
+        {
+          address: pool.quoteToken.id.toLowerCase(),
+          symbol: pool.quoteToken.symbol,
+        },
+      ],
+      reserve:
+        parseFloat(pool.untrackedBaseVolume) +
+        parseFloat(pool.untrackedQuoteVolume),
+      protocol,
+    }))
+    .filter(pool => pool.reserve > 0);
 };

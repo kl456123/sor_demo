@@ -223,7 +223,8 @@ export class RawPoolProvider {
     );
     const cachedAddress = this.nodecache.get<RawPool>(cacheKey);
     if (!cachedAddress) {
-      throw new Error(`cannot find pool address for ${tokenA}/${tokenB}`);
+      logger.warn(`cannot find pool address for ${tokenA}/${tokenB}`);
+      return null;
     }
 
     return cachedAddress;

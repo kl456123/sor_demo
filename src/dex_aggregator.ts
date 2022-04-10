@@ -68,6 +68,8 @@ export class DexAggregator {
         Protocol.CurveV2,
         Protocol.Balancer,
         Protocol.BalancerV2,
+        Protocol.DODOV2,
+        Protocol.DODO,
       ],
       maxSplits: 6,
       poolSelections: {

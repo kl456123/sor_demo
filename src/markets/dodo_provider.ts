@@ -5,6 +5,7 @@ type DODOPoolType = {
   address: string;
   name: string;
   tokens: string[];
+  reserve: number;
 };
 
 const DODOTokens: Record<string, RawToken> = {
@@ -67,61 +68,73 @@ const DODOPools: DODOPoolType[] = [
     address: '0x75c23271661d9d143dcb617222bc4bec783eff34',
     name: 'WETH-USDC',
     tokens: ['WETH', 'USDC'],
+    reserve: 8677648.096256956,
   },
   {
     address: '0x562c0b218cc9ba06d9eb42f3aef54c54cc5a4650',
     name: 'LINK-USDC',
     tokens: ['LINK', 'USDC'],
+    reserve: 4377.229837383617,
   },
   {
     address: '0xc226118fcd120634400ce228d61e1538fb21755f',
     name: 'LEND-USDC',
     tokens: ['LEND', 'USDC'],
+    reserve: 659104.8892908025,
   },
   {
     address: '0x94512fd4fb4feb63a6c0f4bedecc4a00ee260528',
-    name: 'LINK-USDC',
+    name: 'AAVE-USDC',
     tokens: ['AAVE', 'USDC'],
+    reserve: 1886.7521749956456,
   },
   {
     address: '0xca7b0632bd0e646b0f823927d3d2e61b00fe4d80',
     name: 'SNX-USDC',
     tokens: ['SNX', 'USDC'],
+    reserve: 7429.053702131779,
   },
   {
     address: '0x0d04146b2fe5d267629a7eb341fb4388dcdbd22f',
     name: 'COMP-USDC',
     tokens: ['COMP', 'USDC'],
+    reserve: 1469.7056369632753,
   },
   {
     address: '0x2109f78b46a789125598f5ad2b7f243751c2934d',
     name: 'WBTC-USDC',
     tokens: ['WBTC', 'USDC'],
+    reserve: 3217848.301700294,
   },
   {
     address: '0x1b7902a66f133d899130bf44d7d879da89913b2e',
     name: 'YFI-USDC',
     tokens: ['YFI', 'USDC'],
+    reserve: 2074.0729397713667,
   },
   {
     address: '0x9d9793e1e18cdee6cf63818315d55244f73ec006',
     name: 'FIN-USDT',
     tokens: ['FIN', 'USDT'],
+    reserve: 5596.311696389384,
   },
   {
     address: '0xC9f93163c99695c6526b799EbcA2207Fdf7D61aD',
     name: 'USDT-USDC',
     tokens: ['USDT', 'USDC'],
+    reserve: 35287091.462654,
   },
   {
     address: '0x181d93ea28023bf40c8bb94796c55138719803b4',
     name: 'WOO-USDT',
     tokens: ['WOO', 'USDT'],
+    reserve: 103695.978797,
   },
   {
     address: '0x85f9569b69083c3e6aeffd301bb2c65606b5d575',
     name: 'wCRES-USDT',
     tokens: ['wCRES', 'USDT'],
+    reserve: 0,
   },
 ];
 
@@ -137,7 +150,7 @@ export class DODOPoolProvider implements IRawPoolProvider {
         protocol: 'DODO',
         id: pool.address,
         tokens,
-        reserve: Number.MAX_SAFE_INTEGER,
+        reserve: pool.reserve,
       });
     }
     return rawPools;

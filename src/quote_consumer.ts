@@ -96,8 +96,8 @@ export class QuoteConsumer {
           helper: opts.helper,
           takerToken: route.input.address,
           makerToken: route.output.address,
-          pool: '',
-          isSellBase: false,
+          pool: route.poolIds[0],
+          isSellBase: route.input.address === route.pool.tokens[0].address,
         };
       }
       case Protocol.DODOV2: {
@@ -109,8 +109,8 @@ export class QuoteConsumer {
           offset,
           takerToken: route.input.address,
           makerToken: route.output.address,
-          pool: '',
-          isSellBase: false,
+          pool: route.poolIds[0],
+          isSellBase: route.input.address === route.pool.tokens[0].address,
         };
       }
       case Protocol.Kyber: {
