@@ -3,9 +3,9 @@ import { BigNumber, providers } from 'ethers';
 import { WETH9 } from './base_token';
 import { Token, TokenAmount } from './entities';
 import { MultiplexRoute } from './entitiesv2';
-import { logger } from './logging';
+import { UniswapV2PoolData } from './markets/uniswapv2_subgraph_provider';
 import { RawPoolProvider } from './rawpool_provider';
-import { ChainId, Protocol, RawPool } from './types';
+import { ChainId, Protocol } from './types';
 import { UniswapV2Pair__factory } from './types/v2';
 
 const BASE_SWAP_COST = BigNumber.from(100000);
@@ -16,15 +16,20 @@ export class GasModelFactory {
   constructor(
     protected readonly chainId: ChainId,
     protected readonly provider: providers.BaseProvider,
-    protected readonly poolProvider: RawPoolProvider
+    protected readonly poolProvider: RawPoolProvider,
+    protected readonly gasPriceWei: BigNumber
   ) {}
 
-  public async buildGasModel(gasPriceWei: BigNumber, token: Token) {
+  public async buildGasModel(token: Token) {
     // no need to convert from weth to token
     if (token.equals(WETH9[this.chainId])) {
       return {
         estimateGasCost: (multiplexRoute: MultiplexRoute) => {
-          return this.estimateGas(multiplexRoute, gasPriceWei, this.chainId);
+          return this.estimateGas(
+            multiplexRoute,
+            this.gasPriceWei,
+            this.chainId
+          );
         },
       };
     }
@@ -39,7 +44,7 @@ export class GasModelFactory {
       estimateGasCost: (multiplexRoute: MultiplexRoute) => {
         const gasCostInEth = this.estimateGas(
           multiplexRoute,
-          gasPriceWei,
+          this.gasPriceWei,
           this.chainId
         );
         if (!ethPool) {
@@ -66,34 +71,37 @@ export class GasModelFactory {
     const tokensMap: Record<string, Token> = {};
     tokensMap[weth.address] = weth;
     tokensMap[token.address] = token;
-    const poolAddresses = poolProvider.getPoolAddress(weth, token);
-    if (!poolAddresses.length) {
-      logger.error(
-        `Could not find a WETH pool with ${token.symbol} to calculate gas costs`
-      );
+    const rawPool = poolProvider.getPoolAddress(weth, token);
+    if (!rawPool) {
+      return {
+        pool: null,
+        reserve0: BigNumber.from(0),
+        reserve1: BigNumber.from(0),
+      };
     }
-    const rawPool: RawPool = {
-      protocol: Protocol.UniswapV2,
-      id: poolAddresses[0],
-      tokens: [
-        { address: weth.address, symbol: weth.symbol! },
-        { address: token.address, symbol: token.symbol! },
-      ],
-      reserve: 10,
-    };
 
     const poolAccessor = poolProvider.getPools([rawPool], tokensMap);
     const pools = poolAccessor
       .getPool(weth, token)
       .filter(pool => pool.protocol === Protocol.UniswapV2);
 
-    const poolAddress = pools[0].id;
+    if (rawPool.poolData) {
+      const poolData = rawPool.poolData as UniswapV2PoolData;
+      return {
+        pool: pools[0],
+        reserve0: poolData.reserve0,
+        reserve1: poolData.reserve1,
+      };
+    }
+
     // get eth price from uniswapv2
     const uniswapV2Pair = UniswapV2Pair__factory.connect(
-      poolAddress,
+      rawPool.id,
       this.provider
     );
     const [reserve0, reserve1] = await uniswapV2Pair.getReserves();
+    // cache reserve data
+    rawPool.poolData = { reserve0, reserve1 } as UniswapV2PoolData;
     return { pool: pools[0], reserve0, reserve1 };
   }
 

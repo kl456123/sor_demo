@@ -3,6 +3,7 @@ import path from 'path';
 
 import retry from 'async-retry';
 import Timeout from 'await-timeout';
+import { BigNumber } from 'ethers';
 import { gql, GraphQLClient } from 'graphql-request';
 import _ from 'lodash';
 
@@ -20,6 +21,11 @@ const SUBGRAPH_URL_BY_CHAIN: { [chainId in ChainId]?: string } = {
   [ChainId.RINKEBY]:
     'https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v2-rinkeby',
 };
+
+export interface UniswapV2PoolData {
+  reserve0: BigNumber;
+  reserve1: BigNumber;
+}
 
 // raw pools is only used in uniswapv2 subgraph
 type RawSubgraphPool = {

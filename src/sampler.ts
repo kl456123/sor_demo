@@ -943,12 +943,16 @@ export class Sampler extends SamplerOperation {
       this.provider
     );
   }
-  public async executeAsync(callOptions: {blockNumber?: number}={}, ...ops: any[]): Promise<any[]> {
+  public async executeAsync(
+    callOptions: { blockNumber?: number } = {},
+    ...ops: any[]
+  ): Promise<any[]> {
     return this.executeBatchAsync(ops, callOptions);
   }
 
   public async executeBatchAsync<FunctionParams extends any[] | undefined>(
-    ops: SamplerContractOperation<FunctionParams>[], options: {blockNumber?: number}
+    ops: SamplerContractOperation<FunctionParams>[],
+    options: { blockNumber?: number }
   ): Promise<any[]> {
     const callDatas = _.map(ops, o => o.encodeCall());
     const { blockNumber } = options;

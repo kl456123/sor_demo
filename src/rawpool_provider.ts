@@ -48,7 +48,7 @@ export class RawPoolProvider {
   protected dodoPoolProvider: IRawPoolProvider;
   protected balancerPoolProvider: IRawPoolProvider;
   private nodecache: NodeCache;
-  protected blacklist: string[];
+  protected blacklist: string[] = [];
   constructor(public readonly chainId: ChainId) {
     this.uniswapV2SubgraphPoolProvider =
       new UniswapV2StaticFileSubgraphProvider();
@@ -66,10 +66,13 @@ export class RawPoolProvider {
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
 
     // blacklist
-    this.blacklist = JSON.parse(
-      fs.readFileSync(path.resolve(__dirname, '../data/blacklist.json'), 'utf8')
-    ) as string[];
-    this.blacklist.forEach(t => globalBlacklist().add(t));
+    const blacklistPath = '../data/blacklist.json';
+    if (fs.existsSync(blacklistPath)) {
+      this.blacklist = JSON.parse(
+        fs.readFileSync(path.resolve(__dirname, blacklistPath), 'utf8')
+      ) as string[];
+      this.blacklist.forEach(t => globalBlacklist().add(t));
+    }
   }
 
   public async getRawPools(protocols: Protocol[]): Promise<RawPool[]> {
@@ -117,33 +120,16 @@ export class RawPoolProvider {
     );
 
     // cache
-    const tokensTopool: Record<string, string[]> = {};
-    _.forEach(allRawPools, rawPool => {
-      const tokens = rawPool.tokens;
-      const tokenPairs = _.flatMap(tokens, tokenA =>
-        tokens.map(tokenB => [tokenA, tokenB])
-      ).filter(([tokenA, tokenB]) => !(tokenA.address === tokenB.address));
-
-      _.forEach(tokenPairs, tokens => {
+    allRawPools
+      .filter(rawPool => rawPool.protocol === Protocol.UniswapV2)
+      .forEach(rawPool => {
         const key = RawPoolProvider.calcCacheKeyByString(
-          tokens[0].address,
-          tokens[1].address,
+          rawPool.tokens[0].address,
+          rawPool.tokens[1].address,
           this.chainId
         );
-        if (!tokensTopool[key]) {
-          tokensTopool[key] = [];
-        }
-        tokensTopool[key].push(rawPool.id);
+        this.nodecache.set(key, rawPool);
       });
-    });
-    _.map(tokensTopool, (pools, key) => {
-      if (this.nodecache.has(key)) {
-        const oldPools = this.nodecache.get<string[]>(key) ?? [];
-        pools.concat(oldPools);
-      }
-      pools = _(pools).compact().uniq().value();
-      this.nodecache.set(key, pools);
-    });
     return allRawPools;
   }
 
@@ -191,7 +177,10 @@ export class RawPoolProvider {
       getPool: (tokenA: Token, tokenB: Token): Pool[] => {
         const key = RawPoolProvider.calcCacheKey(tokenA, tokenB);
         const poolAddresses = tokensTopool[key];
-        return _.map(poolAddresses, addr => poolAddressToPool[addr]);
+        return _(poolAddresses)
+          .map(addr => poolAddressToPool[addr])
+          .compact()
+          .value();
       },
       getPoolByAddress: (address: string): Pool | undefined => {
         return poolAddressToPool[address];
@@ -206,7 +195,9 @@ export class RawPoolProvider {
     const [token0, token1] = tokenA.sortsBefore(tokenB)
       ? [tokenA, tokenB]
       : [tokenB, tokenA];
-    return `${token0.chainId}/${token0}/${token1}`;
+    return `${
+      token0.chainId
+    }/${token0.address.toLowerCase()}/${token1.address.toLowerCase()}`;
   }
 
   static calcCacheKeyByString(
@@ -220,17 +211,17 @@ export class RawPoolProvider {
     return `${chainId}/${token0}/${token1}`;
   }
 
-  public getPoolAddress(tokenA: Token, tokenB: Token): string[] {
+  public getPoolAddress(tokenA: Token, tokenB: Token) {
     return this.getPoolAddressByString(tokenA.address, tokenB.address);
   }
 
-  public getPoolAddressByString(tokenA: string, tokenB: string): string[] {
+  public getPoolAddressByString(tokenA: string, tokenB: string) {
     const cacheKey = RawPoolProvider.calcCacheKeyByString(
       tokenA,
       tokenB,
       this.chainId
     );
-    const cachedAddress = this.nodecache.get<string[]>(cacheKey);
+    const cachedAddress = this.nodecache.get<RawPool>(cacheKey);
     if (!cachedAddress) {
       throw new Error(`cannot find pool address for ${tokenA}/${tokenB}`);
     }

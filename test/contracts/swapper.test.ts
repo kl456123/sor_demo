@@ -3,7 +3,10 @@ import { ethers } from 'hardhat';
 
 import { UNISWAPV3_CONFIG_BY_CHAIN_ID } from '../../src/addresses';
 import { TOKENS } from '../../src/base_token';
-import { getCurveInfosForTokens } from '../../src/markets/curve';
+import {
+  getCurveInfosForTokens,
+  getCurveLikeInfosForPool,
+} from '../../src/markets/curve';
 import {
   BatchSellSubcall,
   createBatchSellSubcalls,
@@ -273,13 +276,13 @@ describe('Swaper', function () {
     const inputToken: IERC20 = IERC20__factory.connect(DAI, deployer);
     const outputToken: IERC20 = IERC20__factory.connect(USDC, deployer);
     const sellAmount = BigNumber.from(utils.parseUnits('1000', 18));
-    const curveInfos = getCurveInfosForTokens(
-      inputToken.address,
-      outputToken.address
-    );
+    const curveInfos = getCurveLikeInfosForPool({
+      poolAddress: '0xEcd5e75AFb02eFa118AF914515D6521aaBd189F1',
+      protocol: Protocol.Curve,
+    });
     const orderParams: QuoteFromCurveParmas = {
       protocol: Protocol.Curve,
-      poolAddress: curveInfos[0].poolAddress,
+      poolAddress: curveInfos.poolAddress,
       fromToken: inputToken.address,
       toToken: outputToken.address,
     };

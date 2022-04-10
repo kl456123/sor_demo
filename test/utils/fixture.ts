@@ -4,8 +4,8 @@ import { TOKEN_ADDR } from './constants';
 import { impersonateAccounts, impersonateAndTransfer } from './helpers';
 
 export async function loadFixture(WETH: string) {
-    const provider = ethers.provider;
-    const blockNumber = await provider.getBlockNumber();
+  const provider = ethers.provider;
+  const blockNumber = await provider.getBlockNumber();
   // swapper
   const SwapperFactory = await ethers.getContractFactory('Swapper');
   const swapper = await SwapperFactory.deploy();
@@ -87,6 +87,6 @@ export async function loadFixture(WETH: string) {
     fillQuoteTransformer,
     deployer,
     provider,
-    blockNumber,// fork mainnet from this block
+    blockNumber, // fork mainnet from this block
   };
 }

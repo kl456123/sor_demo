@@ -6,6 +6,8 @@ pragma experimental ABIEncoderV2;
 import './IERC20Transformer.sol';
 import './bridges/IBridgeAdapter.sol';
 import '../libs/LibERC20Transformer.sol';
+import '../libs/LibTransformERC20RichErrors.sol';
+import '../libs/LibRichErrors.sol';
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 import '@openzeppelin/contracts/utils/math/Math.sol';
@@ -18,6 +20,7 @@ interface INativeOrdersFeature {
 contract FillQuoteTransformer is IERC20Transformer {
     using SafeMath for uint256;
     using LibERC20Transformer for IERC20;
+    using LibRichErrors for bytes;
 
     /// @dev The BridgeAdapter address
     IBridgeAdapter public immutable bridgeAdapter;
@@ -61,6 +64,18 @@ contract FillQuoteTransformer is IERC20Transformer {
 
     function transform(TransformContext calldata context) external override {
         TransformData memory data = abi.decode(context.data, (TransformData));
+        // Validate data fields.
+        if (data.sellToken.isTokenETH() || data.buyToken.isTokenETH()) {
+            LibTransformERC20RichErrors
+                .InvalidTransformDataError(
+                    LibTransformERC20RichErrors
+                        .InvalidTransformDataErrorCode
+                        .INVALID_TOKENS,
+                    context.data
+                )
+                .rrevert();
+        }
+
         uint256 takerTokenBalanceRemaining = data.sellToken.getTokenBalanceOf(
             address(this)
         );

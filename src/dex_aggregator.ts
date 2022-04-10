@@ -13,13 +13,13 @@ type TradeParams = {
 
 type DexAggregatorParams = {
   chainId: ChainId;
-  nodeUrl: string | ethers.providers.BaseProvider;
+  nodeUrl: string | ethers.providers.JsonRpcProvider;
   testUrl?: string | ethers.providers.JsonRpcProvider;
   transformerAddr?: string;
 };
 
 export class DexAggregator {
-  private readonly provider: ethers.providers.BaseProvider;
+  private readonly provider: ethers.providers.JsonRpcProvider;
   private readonly testProvider: ethers.providers.JsonRpcProvider;
   private readonly router: IRouter;
   public readonly chainId: ChainId;
@@ -62,10 +62,11 @@ export class DexAggregator {
       // tx calldata is too large to send
       maxSwapsPerPath: 2,
       includedSources: [
-        Protocol.UniswapV3,
         Protocol.UniswapV2,
+        Protocol.UniswapV3,
         Protocol.Curve,
         Protocol.CurveV2,
+        Protocol.Balancer,
         Protocol.BalancerV2,
       ],
       maxSplits: 6,
@@ -85,9 +86,11 @@ export class DexAggregator {
   public async swap(
     swapperAddress: string,
     calldata: string,
-    signerAddr?: string
+    signerAddr?: string,
+    test = true
   ) {
-    const signer = this.testProvider.getSigner(signerAddr || 0);
+    const provider = test ? this.testProvider : this.provider;
+    const signer = provider.getSigner(signerAddr || 0);
     const from = await signer.getAddress();
     const tx = {
       from,
@@ -95,6 +98,15 @@ export class DexAggregator {
       data: calldata,
       value: 0,
     };
-    return await signer.sendTransaction(tx);
+    const gasLimit = await provider.estimateGas(tx);
+    const gasPrice = await provider.getGasPrice();
+    return await signer.sendTransaction({ ...tx, gasLimit, gasPrice });
+  }
+
+  public async getGasPrice(test: boolean) {
+    if (test) {
+      return this.testProvider.getGasPrice();
+    }
+    return this.provider.getGasPrice();
   }
 }

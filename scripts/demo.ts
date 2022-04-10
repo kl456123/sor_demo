@@ -17,7 +17,7 @@ dotenv.config();
 
 async function main() {
   const chainId = ChainId.MAINNET;
-  const nodeUrl = process.env.MAINNET_URL!;
+  const nodeUrl = process.env.MAINNET_URL as string;
   const tokens = TOKENS[chainId];
 
   const fixture = await loadFixture(tokens.WETH.address);
@@ -40,7 +40,7 @@ async function main() {
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('10000', baseToken.decimals)
+    ethers.utils.parseUnits('10', baseToken.decimals)
   );
 
   const inputToken: IERC20 = IERC20__factory.connect(
@@ -69,14 +69,29 @@ async function main() {
   const blockNumberForQuote = swapRoute.blockNumber;
   const blockNumberForSwap = fixture.blockNumber;
   if (swapRoute.calldata) {
-    await dexAggregator.swap(swapperAddress, swapRoute.calldata, deployerAddr);
+    const tx = await dexAggregator.swap(
+      swapperAddress,
+      swapRoute.calldata,
+      deployerAddr
+    );
+    console.log('gasLimit: ', tx.gasLimit);
+    console.log('gasPrice: ', tx.gasPrice);
+    const gasPriceProd = await dexAggregator.getGasPrice(false);
+    console.log('gasPriceProd: ', gasPriceProd);
   }
 
   const after = await outputToken.balanceOf(deployerAddr);
-  const actualVal = after.sub(before);
+  let actualVal = after.sub(before);
+  if (inputToken.address === outputToken.address) {
+    actualVal = actualVal.add(amount.amount);
+  }
   const expectVal = swapRoute.routeWithQuote.quote.amount;
-  logger.info(`[blocknumber: ${blockNumberForSwap}]swap: ${actualVal.toString()}`);
-  logger.info(`[blocknumber: ${blockNumberForQuote}]quote: ${expectVal.toString()}`);
+  logger.info(
+    `[blocknumber: ${blockNumberForSwap}]swap: ${actualVal.toString()}`
+  );
+  logger.info(
+    `[blocknumber: ${blockNumberForQuote}]quote: ${expectVal.toString()}`
+  );
   const error = actualVal.sub(expectVal).mul(10000).div(expectVal);
   // ten thousand percent(0.0001%)
   logger.info(`error: ${error.toNumber() / 100}%`);

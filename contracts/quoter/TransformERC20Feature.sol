@@ -88,10 +88,7 @@ contract TransformERC20Feature is ITransformERC20Feature {
 
             if (address(this) != args.recipient) {
                 // Transfer output tokens from this to recipient
-                _executeOutputTokenTransfer(
-                    args.outputToken,
-                    args.recipient
-                );
+                _executeOutputTokenTransfer(args.outputToken, args.recipient);
             }
         }
 
@@ -104,8 +101,8 @@ contract TransformERC20Feature is ITransformERC20Feature {
             'output token is less after tradeing'
         );
         outputTokenAmount = state.recipientOutputTokenBalanceAfter.sub(
-                state.recipientOutputTokenBalanceBefore
-            );
+            state.recipientOutputTokenBalanceBefore
+        );
         // Ensure enough output token has been sent to the taker.
         require(
             outputTokenAmount >= args.minOutputTokenAmount,

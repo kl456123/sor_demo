@@ -128,7 +128,7 @@ export const MAINNET_CURVE_INFOS: Record<string, CurveInfo> = {
   },
   DaiUsdcUsdtTusd: {
     poolAddress: CURVE_POOLS.TUSD,
-    tokens: [tokens.DAI, tokens.USDC, tokens.USDT, TUSD],
+    tokens: [TUSD, tokens.DAI, tokens.USDC, tokens.USDT],
     sellQuoteFunctionSelector: CurveFunctionSelectors.get_dy_underlying, // meta pool
     buyQuoteFunctionSelector: CurveFunctionSelectors.None,
     exchangeFunctionSelector: CurveFunctionSelectors.exchange_underlying,

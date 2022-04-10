@@ -13,7 +13,6 @@ import {
   RouteType,
 } from './entitiesv2';
 import { GasModelFactory } from './gas-model';
-import { IGasPriceProvider } from './gasprice-provider';
 import { logger } from './logging';
 import { QuoterProvider, RouteWithQuotes } from './quoter_provider';
 import { RoutingConfig, TradeType } from './types';
@@ -45,6 +44,7 @@ export async function getBestSwapForMultiHopRoute(
   percents: number[],
   tradeType: TradeType,
   routingConfig: RoutingConfig,
+  gasModelFactory: GasModelFactory,
   quoterProvider: QuoterProvider
 ): Promise<SwapRouteV2 | undefined> {
   const blockNumber = 0;
@@ -61,6 +61,7 @@ export async function getBestSwapForMultiHopRoute(
       percents,
       tradeType,
       routingConfig,
+      gasModelFactory,
       quoterProvider
     );
     if (!swapRouteV2) {
@@ -86,15 +87,13 @@ export async function getBestSwapForMultiHopRoute(
 export async function postprocess(
   routesWithQuotes: RouteWithQuotes[],
   percents: number[],
-  gasPriceProvider: IGasPriceProvider,
   gasModelFactory: GasModelFactory,
   tradeType: TradeType
 ): Promise<MultiplexRouteWithValidQuote[]> {
-  gasPriceProvider;
-  gasModelFactory;
-  tradeType;
+  // gasPriceProvider;
+  // gasModelFactory;
+  // tradeType;
   // reorg and add gas estimation
-  // const { gasPriceWei } = await gasPriceProvider.getGasPrice();
 
   // postprocess of routes with quotes
   const allRoutesWithValidQuotes = [];
@@ -103,11 +102,10 @@ export async function postprocess(
     const [route, quotes] = routeWithQuote;
     const directSwapRoute = route as DirectSwapRoute;
     const outputToken = directSwapRoute.output;
-    // const { estimateGasCost } = await gasModelFactory.buildGasModel(
-    // gasPriceWei,
-    // outputToken
-    // );
-    // const gasCostInToken = estimateGasCost(directSwapRoute);
+    const { estimateGasCost } = await gasModelFactory.buildGasModel(
+      outputToken
+    );
+    const gasCostInToken = estimateGasCost(directSwapRoute);
     let quoteAdjustedForGas;
     let skip = true;
 
@@ -117,26 +115,27 @@ export async function postprocess(
       const { quote, amount } = amountQuote;
       // skip if no quote
       if (!quote || quote.lte(0)) {
-        logger.debug(
+        logger.warn(
           `Dropping a null quote ${amount.toString()} for ${
             directSwapRoute.output.symbol
           } in ${directSwapRoute.pool.protocol}(${directSwapRoute.pool.id}).`
         );
-        continue;
+        break;
       }
+      // consider the pool is useful if any quoted price exists
       skip = false;
 
       const quoteAmount = new TokenAmount(outputToken, quote);
-      // if (tradeType === TradeType.EXACT_INPUT) {
-      // if(quoteAmount.lessThan(gasCostInToken)){
-      // // skip route if gas cost exceeds quote amount
-      // continue;
-      // }
-      // quoteAdjustedForGas = quoteAmount.subtract(gasCostInToken);
-      // } else {
-      // quoteAdjustedForGas = quoteAmount.add(gasCostInToken);
-      // }
-      quoteAdjustedForGas = quoteAmount;
+      if (tradeType === TradeType.EXACT_INPUT) {
+        if (quoteAmount.lessThan(gasCostInToken)) {
+          // skip route if gas cost exceeds quote amount
+          continue;
+        }
+        quoteAdjustedForGas = quoteAmount.subtract(gasCostInToken);
+      } else {
+        quoteAdjustedForGas = quoteAmount.add(gasCostInToken);
+      }
+      // quoteAdjustedForGas = quoteAmount;
 
       const routeWithValidQuote = new MultiplexRouteWithValidQuote({
         amount,
@@ -332,6 +331,7 @@ export async function getBestSwapForBatchRoute(
   percents: number[],
   tradeType: TradeType,
   routingConfig: RoutingConfig,
+  gasModelFactory: GasModelFactory,
   quoterProvider: QuoterProvider
 ): Promise<SwapRouteV2 | undefined> {
   const blockNumber = 0;
@@ -342,7 +342,8 @@ export async function getBestSwapForBatchRoute(
     batchRoute.routes as DirectSwapRoute[],
     percents,
     tradeType,
-  routingConfig,
+    routingConfig,
+    gasModelFactory,
     quoterProvider
   );
   if (!routesWithValidQuotes.length) {
@@ -371,6 +372,7 @@ async function quoteForDirectRoute(
   percents: number[],
   tradeType: TradeType,
   routingConfig: RoutingConfig,
+  gasModelFactory: GasModelFactory,
   quoterProvider: QuoterProvider
 ): Promise<MultiplexRouteWithValidQuote[]> {
   const quoteFn =
@@ -378,12 +380,13 @@ async function quoteForDirectRoute(
       ? quoterProvider.getQuotesManyExactIn.bind(quoterProvider)
       : quoterProvider.getQuotesManyExactOut.bind(quoterProvider);
   const amounts = percents.map(percent => amount.multiply(percent).divide(100));
-  const routesWithQuote = await quoteFn(amounts, routes, {blockNumber: routingConfig.blockNumber});
+  const routesWithQuote = await quoteFn(amounts, routes, {
+    blockNumber: routingConfig.blockNumber,
+  });
   const routesWithValidQuotes = await postprocess(
     routesWithQuote,
     percents,
-    quoterProvider.gasPriceProvider,
-    quoterProvider.gasModelFactory,
+    gasModelFactory,
     tradeType
   );
   return routesWithValidQuotes;
@@ -396,6 +399,7 @@ async function quoteForMultiHopRoute(
   routes: MultiHopRoute[],
   tradeType: TradeType,
   routingConfig: RoutingConfig,
+  gasModelFactory: GasModelFactory,
   quoterProvider: QuoterProvider
 ): Promise<MultiplexRouteWithValidQuote[]> {
   const multiHopRoutePromises = _.flatMap(firstPercents, percent => {
@@ -406,6 +410,7 @@ async function quoteForMultiHopRoute(
         secondPercents,
         tradeType,
         routingConfig,
+        gasModelFactory,
         quoterProvider
       )
     );
@@ -426,6 +431,7 @@ export async function getBestSwapRouteV2(
   route: MultiplexRoute,
   tradeType: TradeType,
   routingConfig: RoutingConfig,
+  gasModelFactory: GasModelFactory,
   quoterProvider: QuoterProvider
 ): Promise<SwapRouteV2 | undefined> {
   const blockNumber = routingConfig.blockNumber;
@@ -440,6 +446,7 @@ export async function getBestSwapRouteV2(
     multiHopRoutes,
     tradeType,
     routingConfig,
+    gasModelFactory,
     quoterProvider
   );
 

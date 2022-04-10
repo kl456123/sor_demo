@@ -2,11 +2,6 @@ import { providers } from 'ethers';
 
 import { TokenAmount } from './entities';
 import { DirectSwapRoute, MultiplexRoute } from './entitiesv2';
-import { GasModelFactory } from './gas-model';
-import {
-  ETHGasStationGasPriceProvider,
-  IGasPriceProvider,
-} from './gasprice-provider';
 import { RawPoolProvider } from './rawpool_provider';
 import { DexSample, Sampler } from './sampler';
 import { AmountQuote, ChainId, TradeType } from './types';
@@ -14,26 +9,18 @@ import { AmountQuote, ChainId, TradeType } from './types';
 // sample queries on single route for many quote amounts
 export type RouteWithQuotes = [MultiplexRoute, AmountQuote[]];
 
-const ETH_GAS_STATION_API_URL = 'https://ethgasstation.info/api/ethgasAPI.json';
-
 export type CallOptions = {
-    blockNumber?: number
-}
+  blockNumber?: number;
+};
 
 export class QuoterProvider {
   protected sampler: Sampler;
-  public gasPriceProvider: IGasPriceProvider;
-  public gasModelFactory: GasModelFactory;
   constructor(
     public readonly chainId: ChainId,
     provider: providers.BaseProvider,
     protected readonly poolProvider: RawPoolProvider
   ) {
     this.sampler = new Sampler(chainId, provider, {});
-    this.gasPriceProvider = new ETHGasStationGasPriceProvider(
-      ETH_GAS_STATION_API_URL
-    );
-    this.gasModelFactory = new GasModelFactory(chainId, provider, poolProvider);
   }
 
   public async getQuotesManyExactIn(
@@ -56,7 +43,7 @@ export class QuoterProvider {
     amounts: TokenAmount[],
     routes: MultiplexRoute[],
     tradeType: TradeType,
-      options: CallOptions
+    options: CallOptions
   ): Promise<RouteWithQuotes[]> {
     // TODO
     const directSwapRoutes = routes as DirectSwapRoute[];
@@ -67,11 +54,13 @@ export class QuoterProvider {
     let dexQuotes: DexSample[][];
     if (tradeType === TradeType.EXACT_INPUT) {
       [dexQuotes] = await this.sampler.executeAsync(
-          options,this.sampler.getSellQuotes(fillAmounts, samplerRoutes)
+        options,
+        this.sampler.getSellQuotes(fillAmounts, samplerRoutes)
       );
     } else {
       [dexQuotes] = await this.sampler.executeAsync(
-          options, this.sampler.getBuyQuotes(fillAmounts, samplerRoutes)
+        options,
+        this.sampler.getBuyQuotes(fillAmounts, samplerRoutes)
       );
     }
 
