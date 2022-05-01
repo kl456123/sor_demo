@@ -32,10 +32,8 @@ export type SampleFromUniswapV2Params = {
 export type SampleFromCurveParmas = {
   protocol: Protocol.Curve | Protocol.CurveV2;
   poolAddress: string;
-  sellQuoteFunctionSelector: string;
-  buyQuoteFunctionSelector: string;
-  fromTokenIdx: number;
-  toTokenIdx: number;
+  fromToken: string;
+  toToken: string;
 };
 
 export type SampleFromUniswapV3Params = {

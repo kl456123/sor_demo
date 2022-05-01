@@ -15,6 +15,14 @@ export function valueByChainId<T>(
   };
 }
 
+const ETH_MAINNET = new Token({
+  chainId: ChainId.MAINNET,
+  address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+  decimals: 18,
+  symbol: 'ETH',
+  name: 'ETH',
+});
+
 const USDC_MAINNET = new Token({
   chainId: ChainId.MAINNET,
   address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
@@ -116,6 +124,7 @@ export const TOKENS = valueByChainId<{ [name: string]: Token }>(
   {
     [ChainId.MAINNET]: {
       USDC: USDC_MAINNET,
+      ETH: ETH_MAINNET,
       USDT: USDT_MAINNET,
       WBTC: WBTC_MAINNET,
       DAI: DAI_MAINNET,

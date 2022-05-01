@@ -6,21 +6,11 @@ import NodeCache from 'node-cache';
 
 import { globalBlacklist } from './blacklist';
 import { PROTOCOLSTRMAP } from './constants';
+import { Database } from './database';
 import { Token, TokenAmount } from './entities';
 import { PoolV2 as Pool } from './entitiesv2';
 import { logger } from './logging';
-import { BalancerPoolProvider } from './markets/balancer_subgraph_provider';
-import { BalancerV2PoolProvider } from './markets/balancerv2_subgraph_provider';
-import {
-  CurvePoolProvider,
-  CurveSubgraphPoolProvider,
-} from './markets/curve_pool_provider';
-import { CurveV2PoolProvider } from './markets/curvev2_pool_provider';
-import { DODOPoolProvider } from './markets/dodo_provider';
-import { DODOV2SubgraphPoolProvider } from './markets/dodov2_subgraph_provider';
-import { UniswapV2StaticFileSubgraphProvider } from './markets/uniswapv2_subgraph_provider';
-import { UniswapV3SubgraphPoolProvider } from './markets/uniswapv3_subgraph_provider';
-import { ChainId, Protocol, ProviderConfig, RawPool } from './types';
+import { ChainId, Protocol, ProviderConfig, RawPool, RawToken } from './types';
 
 export interface IRawPoolProvider {
   getPools(
@@ -29,6 +19,39 @@ export interface IRawPoolProvider {
     providerConfig?: ProviderConfig
   ): Promise<RawPool[]>;
 }
+
+export enum DatabaseProtocol {
+  UniswapV2,
+  UniswapV3,
+  Curve,
+  CurveV2,
+  Balancer,
+  BalancerV2,
+  Bancor,
+  Kyber,
+  DODO,
+  DODOV2,
+}
+
+const DatabaseMap: Record<DatabaseProtocol, Protocol> = {
+  [DatabaseProtocol.UniswapV2]: Protocol.UniswapV2,
+  [DatabaseProtocol.UniswapV3]: Protocol.UniswapV3,
+  [DatabaseProtocol.Curve]: Protocol.Curve,
+  [DatabaseProtocol.CurveV2]: Protocol.CurveV2,
+  [DatabaseProtocol.Balancer]: Protocol.Balancer,
+  [DatabaseProtocol.BalancerV2]: Protocol.BalancerV2,
+  [DatabaseProtocol.Bancor]: Protocol.Bancor,
+  [DatabaseProtocol.Kyber]: Protocol.Kyber,
+  [DatabaseProtocol.DODO]: Protocol.DODO,
+  [DatabaseProtocol.DODOV2]: Protocol.DODOV2,
+};
+type DatabasePool = {
+  protocol: DatabaseProtocol;
+  id: string;
+  tokens: { id: string; symbol: string }[];
+  poolData?: unknown;
+  latestDailyVolumeUSD: string;
+};
 
 export type PoolAccessor = {
   getPool: (tokenA: Token, tokenB: Token) => Pool[];
@@ -39,30 +62,11 @@ export type PoolAccessor = {
 type TokenPair = [Token, Token];
 
 export class RawPoolProvider {
-  protected uniswapV2SubgraphPoolProvider: IRawPoolProvider;
-  protected uniswapV3SubgraphPoolProvider: IRawPoolProvider;
-  protected curvePoolProvider: IRawPoolProvider;
-  protected curveV2PoolProvider: IRawPoolProvider;
-  protected balancerV2PoolProvider: IRawPoolProvider;
-  protected dodoV2PoolProvider: IRawPoolProvider;
-  protected dodoPoolProvider: IRawPoolProvider;
-  protected balancerPoolProvider: IRawPoolProvider;
   private nodecache: NodeCache;
   protected blacklist: string[] = [];
-  constructor(public readonly chainId: ChainId) {
-    this.uniswapV2SubgraphPoolProvider =
-      new UniswapV2StaticFileSubgraphProvider();
-    this.balancerV2PoolProvider = new BalancerV2PoolProvider(chainId);
-    this.balancerPoolProvider = new BalancerPoolProvider();
-    this.curvePoolProvider = new CurvePoolProvider();
-    const curvePoolProvider = new CurveSubgraphPoolProvider(chainId);
-    curvePoolProvider;
-    this.uniswapV3SubgraphPoolProvider = new UniswapV3SubgraphPoolProvider(
-      chainId
-    );
-    this.dodoV2PoolProvider = new DODOV2SubgraphPoolProvider(chainId);
-    this.dodoPoolProvider = new DODOPoolProvider();
-    this.curveV2PoolProvider = new CurveV2PoolProvider();
+  protected cachedPools: RawPool[] = [];
+  protected poolCollectionName: string;
+  constructor(public readonly chainId: ChainId, protected database: Database) {
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
 
     // blacklist
@@ -73,48 +77,40 @@ export class RawPoolProvider {
       ) as string[];
       this.blacklist.forEach(t => globalBlacklist().add(t));
     }
+    this.poolCollectionName = 'pools';
+  }
+
+  public async fetchPoolsFromDatabase(protocols: Protocol[]) {
+    protocols;
+    const poolsFetch = await this.database.loadMany<DatabasePool>(
+      {
+        latestDailyVolumeUSD: { $gt: '0' },
+        protocol: { $ne: DatabaseProtocol.Curve },
+      },
+      this.poolCollectionName
+    );
+    const pools: RawPool[] = poolsFetch.map(poolFetch => {
+      const tokens: RawToken[] = poolFetch.tokens.map(token => ({
+        address: token.id,
+        symbol: token.symbol,
+      }));
+      return {
+        protocol: DatabaseMap[poolFetch.protocol],
+        id: poolFetch.id.toLowerCase(),
+        tokens,
+        reserve: parseFloat(poolFetch.latestDailyVolumeUSD),
+        poolData: poolFetch.poolData,
+      };
+    });
+    return pools;
   }
 
   public async getRawPools(protocols: Protocol[]): Promise<RawPool[]> {
-    const poolsFetchPromises = [];
-    for (const protocol of protocols) {
-      switch (protocol) {
-        case Protocol.UniswapV2:
-          poolsFetchPromises.push(
-            this.uniswapV2SubgraphPoolProvider.getPools()
-          );
-          break;
-        case Protocol.UniswapV3:
-          poolsFetchPromises.push(
-            this.uniswapV3SubgraphPoolProvider.getPools()
-          );
-          break;
-        case Protocol.Curve:
-          poolsFetchPromises.push(this.curvePoolProvider.getPools());
-          break;
-        case Protocol.BalancerV2:
-          poolsFetchPromises.push(this.balancerV2PoolProvider.getPools());
-          break;
-        case Protocol.DODOV2:
-          poolsFetchPromises.push(this.dodoV2PoolProvider.getPools());
-          break;
-        case Protocol.DODO:
-          poolsFetchPromises.push(this.dodoPoolProvider.getPools());
-          break;
-        case Protocol.CurveV2:
-          poolsFetchPromises.push(this.curveV2PoolProvider.getPools());
-          break;
-        case Protocol.Balancer:
-          poolsFetchPromises.push(this.balancerPoolProvider.getPools());
-          break;
-        default:
-          throw new Error(
-            `unsupported protocol: ${protocol} when get rawPools!`
-          );
-      }
+    if (this.cachedPools.length) {
+      return this.cachedPools;
     }
+    const poolsFetch = await this.fetchPoolsFromDatabase(protocols);
 
-    const poolsFetch = await Promise.all(poolsFetchPromises);
     const allRawPools: RawPool[] = _.flatMap(poolsFetch).filter(
       rawPool => !this.blacklist.includes(rawPool.id)
     );
@@ -130,6 +126,7 @@ export class RawPoolProvider {
         );
         this.nodecache.set(key, rawPool);
       });
+    this.cachedPools = allRawPools;
     return allRawPools;
   }
 

@@ -12,3 +12,6 @@ cache
 artifacts
 
 data/blacklist.json
+
+deployments/*
+yarn-error.log

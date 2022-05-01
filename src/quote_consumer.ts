@@ -18,7 +18,7 @@ import {
   MultiplexRouteWithValidQuote,
   RouteType,
 } from './entitiesv2';
-import { UniswapV3PoolData } from './markets/uniswapv3_subgraph_provider';
+import { UniswapV3PoolData } from './markets/types';
 import {
   BatchSellSubcall,
   createTransformations,

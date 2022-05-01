@@ -1,6 +1,4 @@
 // get gas price from gas station network
-import retry from 'async-retry';
-import axios from 'axios';
 import { BigNumber } from 'ethers';
 
 import { logger } from './logging';
@@ -21,25 +19,21 @@ export class ETHGasStationGasPriceProvider extends IGasPriceProvider {
 
   public async getGasPrice(): Promise<GasPrice> {
     // mock data
-    const response = await retry(
-      async () => {
-        return axios.get(this.url);
-      },
-      { retries: 1 }
-    );
-    const { data: gasPriceResponse, status } = response;
-    if (status !== 200) {
-      throw new Error(`Unable to get gas price form ${this.url}`);
+    logger.info(`gasPriceResponse: ${this.url}`);
+    try {
+      // const { data, status } = await axios.get(this.url);
+
+      // logger.info(`gasPriceResponse: ${data}`);
+      const { fast, blockNum: blockNumber } = { fast: 360, blockNum: 14460251 };
+
+      const gasPriceWei = BigNumber.from(fast)
+        .div(BigNumber.from(10))
+        .mul(BigNumber.from(10).pow(9));
+
+      const gasPrice: GasPrice = { gasPriceWei, blockNumber };
+      return gasPrice;
+    } catch (error) {
+      throw new Error(`Unable to get gas price form ${this.url}: ${error}`);
     }
-
-    logger.info(`${gasPriceResponse}`);
-    const { fast, blockNum: blockNumber } = gasPriceResponse;
-
-    const gasPriceWei = BigNumber.from(fast)
-      .div(BigNumber.from(10))
-      .mul(BigNumber.from(10).pow(9));
-
-    const gasPrice: GasPrice = { gasPriceWei, blockNumber };
-    return gasPrice;
   }
 }

@@ -3,7 +3,7 @@ import { BigNumber, providers } from 'ethers';
 import { WETH9 } from './base_token';
 import { Token, TokenAmount } from './entities';
 import { MultiplexRoute } from './entitiesv2';
-import { UniswapV2PoolData } from './markets/uniswapv2_subgraph_provider';
+import { UniswapV2PoolData } from './markets/types';
 import { RawPoolProvider } from './rawpool_provider';
 import { ChainId, Protocol } from './types';
 import { UniswapV2Pair__factory } from './types/v2';

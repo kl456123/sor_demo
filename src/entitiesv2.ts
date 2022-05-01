@@ -64,7 +64,8 @@ export class RouteV2 {
 
   public get routeKey(): string {
     const pathStr: string[] = [];
-    this.path.forEach(token => pathStr.push(token.symbol ?? token.address));
+    // use address to identify a token
+    this.path.forEach(token => pathStr.push(token.address));
     return pathStr.join('/');
   }
 }

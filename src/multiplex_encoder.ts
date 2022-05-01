@@ -7,10 +7,6 @@ import {
   DODOV2_FACTORIES_BY_CHAIN_ID,
 } from './addresses';
 import { Protocol2Id } from './constants';
-import {
-  getCurveInfosForPool,
-  getCurveLikeInfosForPool,
-} from './markets/curve';
 import { ChainId, Protocol, ProtocolId, TradeType } from './types';
 
 export enum MultiplexSubcallType {
@@ -321,21 +317,15 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
     }
     case Protocol.Curve: {
       // select the first one
-      const curveInfo = getCurveInfosForPool(params.poolAddress);
-      const tokens = curveInfo.tokens.map(token => token.address);
-      const fromTokenIdx = tokens.indexOf(params.fromToken);
-      const toTokenIdx = tokens.indexOf(params.toToken);
       const paramsData = utils.defaultAbiCoder.encode(
         [
           'tuple(address poolAddress,bytes4 sellQuoteFunctionSelector,bytes4 buyQuoteFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
         ],
         [
           {
-            poolAddress: curveInfo.poolAddress,
-            sellQuoteFunctionSelector: curveInfo.sellQuoteFunctionSelector,
-            buyQuoteFunctionSelector: curveInfo.buyQuoteFunctionSelector,
-            fromTokenIdx,
-            toTokenIdx,
+            poolAddress: params.poolAddress,
+            fromToken: params.fromToken,
+            toToken: params.toToken,
           },
         ]
       );
@@ -428,23 +418,15 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
     case Protocol.CurveV2:
     case Protocol.Curve: {
       // select the first one
-      const curveInfo = getCurveLikeInfosForPool({
-        poolAddress: params.poolAddress,
-        protocol: params.protocol,
-      });
-      const tokens = curveInfo.tokens.map(token => token.address);
-      const fromTokenIdx = tokens.indexOf(params.fromToken);
-      const toTokenIdx = tokens.indexOf(params.toToken);
       return utils.defaultAbiCoder.encode(
         [
           'tuple(address poolAddress,bytes4 exchangeFunctionSelector,uint256 fromTokenIdx,uint256 toTokenIdx)',
         ],
         [
           {
-            poolAddress: curveInfo.poolAddress,
-            exchangeFunctionSelector: curveInfo.exchangeFunctionSelector,
-            fromTokenIdx,
-            toTokenIdx,
+            poolAddress: params.poolAddress,
+            fromToken: params.fromToken,
+            toToken: params.toToken,
           },
         ]
       );

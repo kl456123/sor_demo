@@ -1,6 +1,7 @@
 import { ethers } from 'ethers';
 
 import { SwapRouteV2 } from './best_swap_route';
+import { Database } from './database';
 import { Token, TokenAmount } from './entities';
 import { AlphaRouter, IRouter } from './router';
 import { ChainId, Protocol, TradeType } from './types';
@@ -16,6 +17,7 @@ type DexAggregatorParams = {
   nodeUrl: string | ethers.providers.JsonRpcProvider;
   testUrl?: string | ethers.providers.JsonRpcProvider;
   transformerAddr?: string;
+  database: Database;
 };
 
 export class DexAggregator {
@@ -28,6 +30,7 @@ export class DexAggregator {
     nodeUrl,
     testUrl,
     transformerAddr,
+    database,
   }: DexAggregatorParams) {
     if (typeof nodeUrl === 'string') {
       this.provider = new ethers.providers.JsonRpcProvider({
@@ -50,6 +53,7 @@ export class DexAggregator {
       provider: this.provider,
       chainId: this.chainId,
       transformerAddr,
+      database,
     });
   }
 

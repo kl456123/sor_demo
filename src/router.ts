@@ -1,6 +1,8 @@
 import { providers } from 'ethers';
 import _ from 'lodash';
 
+import { Database } from '../src/database';
+
 import {
   computeAllRoutes,
   getAmountDistribution,
@@ -22,7 +24,6 @@ import { RawPoolProvider } from './rawpool_provider';
 import { SourceFilters } from './source_filters';
 import { ITokenProvider, TokenProvider } from './token_provider';
 import { ChainId, Protocol, RoutingConfig, TradeType } from './types';
-import { multiplexRouteQToString } from './utils';
 
 export abstract class IRouter {
   abstract route(
@@ -36,6 +37,7 @@ export abstract class IRouter {
 export type AlphaRouterParams = {
   chainId: ChainId;
   provider: providers.BaseProvider;
+  database: Database;
   transformerAddr: string;
 };
 
@@ -50,14 +52,19 @@ export class AlphaRouter implements IRouter {
   protected sourceFilters: SourceFilters;
   protected quoteConsumer: QuoteConsumer;
   protected gasPriceProvider: IGasPriceProvider;
-  constructor({ chainId, provider, transformerAddr }: AlphaRouterParams) {
+  constructor({
+    chainId,
+    provider,
+    transformerAddr,
+    database,
+  }: AlphaRouterParams) {
     this.chainId = chainId;
     // node provider
     this.provider = provider;
 
     // data provider
     this.tokenProvider = new TokenProvider(this.chainId);
-    this.poolProvider = new RawPoolProvider(this.chainId);
+    this.poolProvider = new RawPoolProvider(this.chainId, database);
     this.quoterProvider = new QuoterProvider(
       chainId,
       provider,
@@ -131,7 +138,7 @@ export class AlphaRouter implements IRouter {
     const composedRoutes = Composer.compose(routes);
 
     const timeBefore = Date.now();
-    const { gasPriceWei } = await this.gasPriceProvider.getGasPrice();
+    const gasPriceWei = await this.provider.getGasPrice();
     const gasModelFactory = new GasModelFactory(
       this.chainId,
       this.provider,
@@ -161,16 +168,16 @@ export class AlphaRouter implements IRouter {
       this.quoteConsumer.encodeBatchSellRoute(routeWithQuote);
 
     // print swapRoute
-    logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
-    logger.info(
-      `Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`
-    );
-    logger.info(`${multiplexRouteQToString(routeWithQuote)}`);
-    logger.info(`\tRaw Quote Exact In:`);
-    logger.info(`\t\t${routeWithQuote.quote.amount.toString()}`);
-    logger.info(`\tGas Adjusted Quote In:`);
-    logger.info(`\t\t${routeWithQuote.quoteAdjustedForGas.amount.toString()}`);
-    logger.info(`calldata: ${swapRoutes.calldata}`);
+    // logger.info(`Swap ${amount} for ${quoteToken.symbol}`);
+    // logger.info(
+    // `Best Route for (${tokenIn.symbol}=>${tokenOut.symbol}) when the block number is ${blockNumber}`
+    // );
+    // logger.info(`${multiplexRouteQToString(routeWithQuote)}`);
+    // logger.info(`\tRaw Quote Exact In:`);
+    // logger.info(`\t\t${routeWithQuote.quote.amount.toString()}`);
+    // logger.info(`\tGas Adjusted Quote In:`);
+    // logger.info(`\t\t${routeWithQuote.quoteAdjustedForGas.amount.toString()}`);
+    // logger.info(`calldata: ${swapRoutes.calldata}`);
 
     return swapRoutes;
   }

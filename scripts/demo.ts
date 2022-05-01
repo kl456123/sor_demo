@@ -6,6 +6,7 @@ import { ethers } from 'ethers';
 
 import { TOKENS } from '../src/base_token';
 import { globalBlacklist } from '../src/blacklist';
+import { Database } from '../src/database';
 import { DexAggregator } from '../src/dex_aggregator';
 import { TokenAmount } from '../src/entities';
 import { logger } from '../src/logging';
@@ -26,11 +27,16 @@ async function main() {
   const deployer = fixture.deployer;
   const deployerAddr = fixture.deployer.address;
   const testUrl = fixture.provider;
+  // init database first
+  const database = new Database(process.env.DB_CONN_STRING as string);
+  await database.initDB(process.env.DB_NAME as string);
+
   const dexAggregator = new DexAggregator({
     chainId,
     nodeUrl,
     testUrl,
     transformerAddr,
+    database,
   });
 
   // trade params
@@ -40,7 +46,7 @@ async function main() {
   const tradeType = TradeType.EXACT_INPUT;
   const amount = new TokenAmount(
     baseToken,
-    ethers.utils.parseUnits('10', baseToken.decimals)
+    ethers.utils.parseUnits('1000', baseToken.decimals)
   );
 
   const inputToken: IERC20 = IERC20__factory.connect(
@@ -103,6 +109,8 @@ async function main() {
     path.resolve(__dirname, '../data/blacklist.json'),
     JSON.stringify(blacklistPools)
   );
+
+  await database.close();
 }
 
 main().catch(console.error);

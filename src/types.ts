@@ -161,3 +161,50 @@ export enum Rounding {
   ROUNDING_HALF_UP = 1,
   ROUNDING_UP = 2,
 }
+
+// types for server request and response
+export type QuoteParam = {
+  // basic params for trading
+  fromTokenAddress: string;
+  toTokenAddress: string;
+  amount: string;
+  // opts for routing algorithm
+  protocols?: Protocol[];
+  maxSwapsPerPath?: number;
+  maxSplits?: number;
+};
+
+export type QuoteResponse = {
+  fromToken: string;
+  toToken: string;
+  fromTokenAmount: string;
+  toTokenAmount: string;
+  protocols: string;
+};
+
+export type SwapParam = {
+  // basic params for trading
+  fromTokenAddress: string;
+  toTokenAddress: string;
+  amount: string;
+  fromAddress: string;
+  slippage: string;
+  protocols?: Protocol[];
+  dstReceiver?: string;
+  maxSwapsPerPath?: number;
+  maxSplits?: number;
+  allPartialFill?: boolean;
+};
+
+export type SwapResponse = {
+  fromToken: string;
+  toToken: string;
+  fromTokenAmount: string;
+  toTokenAmount: string;
+  data: string;
+  value: string;
+  gasPrice: string;
+  gasLimit: string;
+  from: string;
+  to: string;
+};

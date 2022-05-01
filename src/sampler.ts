@@ -24,9 +24,7 @@ import {
 } from './addresses';
 import { DirectSwapRoute } from './entitiesv2';
 import { logger } from './logging';
-import { getCurveLikeInfosForPool } from './markets/curve';
-import { BalancerV2PoolInfo } from './markets/types';
-import { UniswapV3PoolData } from './markets/uniswapv3_subgraph_provider';
+import { BalancerV2PoolInfo, UniswapV3PoolData } from './markets/types';
 import { SampleParams as SamplerRoute } from './sampler_params';
 import { ChainId, Protocol } from './types';
 
@@ -165,51 +163,29 @@ export class SamplerOperation {
 
   public getCurveBuyQuotes(
     poolAddress: string,
-    sellQuoteFunctionSelector: string,
-    buyQuoteFunctionSelector: string,
-    fromTokenIdx: number,
-    toTokenIdx: number,
+    fromToken: string,
+    toToken: string,
     makerFillAmounts: BigNumber[]
   ): SourceContractOperation {
     return new SamplerContractOperation({
       protocol: Protocol.Curve,
       contractInterface: ERC20BridgeSampler__factory.createInterface(),
       functionName: 'sampleBuysFromCurve',
-      functionParams: [
-        {
-          poolAddress,
-          sellQuoteFunctionSelector,
-          buyQuoteFunctionSelector,
-        },
-        fromTokenIdx,
-        toTokenIdx,
-        makerFillAmounts,
-      ],
+      functionParams: [poolAddress, fromToken, toToken, makerFillAmounts],
     });
   }
 
   public getCurveSellQuotes(
     poolAddress: string,
-    sellQuoteFunctionSelector: string,
-    buyQuoteFunctionSelector: string,
-    fromTokenIdx: number,
-    toTokenIdx: number,
+    fromToken: string,
+    toToken: string,
     takerFillAmounts: BigNumber[]
   ): SourceContractOperation {
     return new SamplerContractOperation({
       protocol: Protocol.Curve,
       contractInterface: ERC20BridgeSampler__factory.createInterface(),
       functionName: 'sampleSellsFromCurve',
-      functionParams: [
-        {
-          poolAddress,
-          sellQuoteFunctionSelector,
-          buyQuoteFunctionSelector,
-        },
-        fromTokenIdx,
-        toTokenIdx,
-        takerFillAmounts,
-      ],
+      functionParams: [poolAddress, fromToken, toToken, takerFillAmounts],
     });
   }
 
@@ -584,10 +560,8 @@ export class SamplerOperation {
         case Protocol.Curve: {
           return this.getCurveSellQuotes(
             route.poolAddress,
-            route.sellQuoteFunctionSelector,
-            route.buyQuoteFunctionSelector,
-            route.fromTokenIdx,
-            route.toTokenIdx,
+            route.fromToken,
+            route.toToken,
             amounts
           );
         }
@@ -693,20 +667,11 @@ export class SamplerOperation {
       case Protocol.CurveV2:
       case Protocol.Curve: {
         const poolAddress = route.pool.id;
-        const curveInfo = getCurveLikeInfosForPool({
-          poolAddress,
-          protocol: route.pool.protocol,
-        });
-        const tokensAddress = curveInfo.tokens.map(token => token.address);
-        const fromTokenIdx = tokensAddress.indexOf(route.input.address);
-        const toTokenIdx = tokensAddress.indexOf(route.output.address);
         return {
           protocol: route.pool.protocol,
           poolAddress: route.pool.id,
-          sellQuoteFunctionSelector: curveInfo.sellQuoteFunctionSelector,
-          buyQuoteFunctionSelector: curveInfo.buyQuoteFunctionSelector,
-          fromTokenIdx,
-          toTokenIdx,
+          fromToken: route.input.address,
+          toToken: route.output.address,
         };
       }
       case Protocol.BalancerV2: {
@@ -812,10 +777,8 @@ export class SamplerOperation {
         case Protocol.Curve: {
           return this.getCurveBuyQuotes(
             route.poolAddress,
-            route.sellQuoteFunctionSelector,
-            route.buyQuoteFunctionSelector,
-            route.fromTokenIdx,
-            route.toTokenIdx,
+            route.fromToken,
+            route.toToken,
             amounts
           );
         }

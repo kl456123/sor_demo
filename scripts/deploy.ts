@@ -3,7 +3,27 @@
 //
 // When running the script with `npx hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
+import fs from 'fs';
+
 import { ethers } from 'hardhat';
+
+export type DeploymentsAddress = {
+  [chainId: number]: { [contractName: string]: string };
+};
+
+export function saveDeploymentsAddress(
+  deploymentsAddr: DeploymentsAddress,
+  deploymentsDir: string
+) {
+  if (!fs.existsSync(deploymentsDir)) {
+    fs.mkdirSync(deploymentsDir);
+  }
+
+  fs.writeFileSync(
+    deploymentsDir + '/deployments.json',
+    JSON.stringify(deploymentsAddr)
+  );
+}
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -59,6 +79,17 @@ async function main() {
   console.log(
     `FillQuoteTransformer deployed to: ${fillQuoteTransformer.address}`
   );
+
+  // save all contracts addresses
+  const deployments: DeploymentsAddress = {
+    1: {
+      swapper: swapper.address,
+      fillQuoteTransformer: fillQuoteTransformer.address,
+      bridgeAdapter: bridgeAdapter.address,
+      sampler: sampler.address,
+    },
+  };
+  saveDeploymentsAddress(deployments, './deployments');
 }
 
 // We recommend this pattern to be able to use async/await everywhere
