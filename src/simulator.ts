@@ -1,5 +1,4 @@
-import { BigNumber, BigNumberish } from 'ethers';
-import hre from 'hardhat';
+import { BigNumber, BigNumberish, ethers } from 'ethers';
 
 import { IERC20__factory } from '../typechain-types';
 
@@ -15,22 +14,23 @@ export const BINANCE7 = '0xbe0eb53f46cd790cd13851d5eff43d12404d33e8';
 export const MULTICHAIN = '0xc564ee9f21ed8a2d8e7e76c085740d5e4c5fafbe';
 
 // util functions
-export async function impersonateAccount(account: string) {
-  await hre.network.provider.request({
-    method: 'hardhat_impersonateAccount',
-    params: [account],
-  });
-  return hre.ethers.provider.getSigner(account);
+export async function impersonateAccount(account: string, provider: ethers.providers.JsonRpcProvider) {
+  await provider.send(
+    'hardhat_impersonateAccount',
+    [account],
+  );
+  return provider.getSigner(account);
 }
 
 export async function impersonateAndTransfer(
   amt: BigNumberish,
   token: { holder: string; contract: string },
-  toAddr: string
+  toAddr: string,
+  provider: ethers.providers.JsonRpcProvider
 ) {
-  const signer = await hre.ethers.getSigner(token.holder);
+  const signer = await provider.getSigner(token.holder);
 
-  await impersonateAccount(token.holder);
+  await impersonateAccount(token.holder, provider);
   if (token.contract.toLowerCase() === tokens.ETH.address.toLowerCase()) {
     // eth
     await signer.sendTransaction({ to: toAddr, value: BigNumber.from(amt) });
@@ -83,13 +83,12 @@ export const wealthyAccounts: Record<
   },
 };
 
-export const provider = hre.ethers.provider;
-
 export async function prepareTokens(
   walletAddress: string,
   tokenAddr: string,
   tokenAmount: string,
-  ethValue: string
+  ethValue: string,
+  provider: ethers.providers.JsonRpcProvider
 ) {
   const accounts = Object.values(wealthyAccounts).filter(
     item => item.contract.toLowerCase() === tokenAddr.toLowerCase()
@@ -98,9 +97,9 @@ export async function prepareTokens(
     throw new Error(`trading from tokenAddr(${tokenAddr}) is not supported`);
   }
   if (BigNumber.from(ethValue).gt(0)) {
-    await impersonateAndTransfer(ethValue, wealthyAccounts.ETH, walletAddress);
+    await impersonateAndTransfer(ethValue, wealthyAccounts.ETH, walletAddress, provider);
   }
   if (BigNumber.from(tokenAmount).gt(0)) {
-    await impersonateAndTransfer(tokenAmount, accounts[0], walletAddress);
+    await impersonateAndTransfer(tokenAmount, accounts[0], walletAddress, provider);
   }
 }

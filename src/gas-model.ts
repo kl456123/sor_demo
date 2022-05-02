@@ -6,7 +6,7 @@ import { MultiplexRoute } from './entitiesv2';
 import { UniswapV2PoolData } from './markets/types';
 import { RawPoolProvider } from './rawpool_provider';
 import { ChainId, Protocol } from './types';
-import { UniswapV2Pair__factory } from './types/v2';
+import { IUniswapV2Pair__factory } from './typechain';
 
 const BASE_SWAP_COST = BigNumber.from(100000);
 
@@ -95,7 +95,7 @@ export class GasModelFactory {
     }
 
     // get eth price from uniswapv2
-    const uniswapV2Pair = UniswapV2Pair__factory.connect(
+    const uniswapV2Pair = IUniswapV2Pair__factory.connect(
       rawPool.id,
       this.provider
     );

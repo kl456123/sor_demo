@@ -1,0 +1,30 @@
+version: '3.3'
+
+services:
+  sor_demo:
+    build:
+      context: .
+    image: sor_demo
+    ports:
+      - 8547:8545
+      - 8546:8546
+    environment:
+      - ALCHEMY_API_KEY=mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03
+      - MAINNET_URL=http://35.75.165.133:8545
+      - SERVER_PORT=8546
+      - SERVER_IP=0.0.0.0
+      - DB_CONN_STRING=mongodb://mongodb:27017
+      - DB_NAME=dex
+      - POOLS_COLLECTION_NAME=pools
+      - TOKENS_COLLECTION_NAME=tokens
+
+  mongodb:
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb:/data/db
+      - mongodb_config:/data/configdb
+volumes:
+ mongodb:
+ mongodb_config:

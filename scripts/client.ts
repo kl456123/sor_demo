@@ -34,6 +34,7 @@ async function swap(swapParam: SwapParam) {
 async function main() {
   const chainId = ChainId.MAINNET;
   const tokens = TOKENS[chainId];
+  const provider = new ethers.providers.JsonRpcProvider('http://localhost:8547');
   const amount = ethers.utils.parseUnits('1000', 18).toString();
   const fromTokenAddress = tokens.WETH.address;
   const toTokenAddress = tokens.USDC.address;
@@ -49,7 +50,6 @@ async function main() {
 
   // swap
   const fromAddress = BINANCE7;
-  const signer = await impersonateAccount(fromAddress);
   const slippage = '0';
   const ethValue = '0';
   const swapParam: SwapParam = {
@@ -65,10 +65,11 @@ async function main() {
   logger.info(`latencyMs: ${Date.now() - timeBefore1}`);
   // send tx
   // prepare tokens first
-  await prepareTokens(fromAddress, fromTokenAddress, amount, ethValue);
+  await prepareTokens(fromAddress, fromTokenAddress, amount, ethValue, provider);
 
   // approve dexRouter for input token
   const max = ethers.constants.MaxUint256;
+  const signer = await impersonateAccount(fromAddress, provider);
   const inputTokenContract = IERC20__factory.connect(fromTokenAddress, signer);
   const outputTokenContract = IERC20__factory.connect(toTokenAddress, signer);
   await inputTokenContract.approve(swapRes.to, max);

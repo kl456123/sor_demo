@@ -1,6 +1,5 @@
 // wrapper for erc20 bridge sampler contract
 
-import { SignedOrder } from '@0x/types';
 import { Interface } from '@ethersproject/abi';
 import { BigNumber, BigNumberish, providers } from 'ethers';
 import _ from 'lodash';
@@ -361,29 +360,6 @@ export class SamplerOperation {
       contractInterface: ERC20BridgeSampler__factory.createInterface(),
       functionName: 'sampleBuysFromUniswapV3',
       functionParams: [quoter, tokenAddressPath, makerFillAmounts, fees],
-    });
-  }
-
-  // some getter operations that nothing to do with trading
-  public getOrderFillableMakerAssetAmounts(
-    orders: SignedOrder[]
-  ): ContractOperation<BigNumber[]> {
-    return new SamplerContractOperation({
-      protocol: Protocol.ZeroX,
-      contractInterface: ERC20BridgeSampler__factory.createInterface(),
-      functionName: 'getOrderFillableMakerAssetAmounts',
-      functionParams: [orders, orders.map(o => o.signature)],
-    });
-  }
-
-  public getOrderFillableTakerAssetAmounts(
-    orders: SignedOrder[]
-  ): ContractOperation<BigNumber[]> {
-    return new SamplerContractOperation({
-      protocol: Protocol.ZeroX,
-      contractInterface: ERC20BridgeSampler__factory.createInterface(),
-      functionName: 'getOrderFillableTakerAssetAmounts',
-      functionParams: [orders, orders.map(o => o.signature)],
     });
   }
 
