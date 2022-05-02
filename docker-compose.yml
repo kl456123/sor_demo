@@ -7,7 +7,7 @@ services:
     image: sor_demo
     ports:
       - 8547:8545
-      - 8546:8546
+      - 8548:8548
     environment:
       - ALCHEMY_API_KEY=mgHwlYpgAvGEiR_RCgPiTfvT-yyJ6T03
       - MAINNET_URL=http://35.75.165.133:8545

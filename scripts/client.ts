@@ -1,7 +1,7 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import { BigNumber } from 'ethers';
-import { ethers } from 'hardhat';
+import { ethers } from 'ethers';
 
 import { TOKENS } from '../src/base_token';
 import { logger } from '../src/logging';
@@ -34,7 +34,7 @@ async function swap(swapParam: SwapParam) {
 async function main() {
   const chainId = ChainId.MAINNET;
   const tokens = TOKENS[chainId];
-  const provider = new ethers.providers.JsonRpcProvider('http://localhost:8547');
+  const provider = new ethers.providers.JsonRpcProvider('http://35.75.165.133:8547');
   const amount = ethers.utils.parseUnits('1000', 18).toString();
   const fromTokenAddress = tokens.WETH.address;
   const toTokenAddress = tokens.USDC.address;

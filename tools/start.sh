@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# build docker
-# docker build . -t sor_demo
+docker-compose up -d
 
 # start node
 # 8547 used for forknet node, 8546 used for dex aggregator server
@@ -16,3 +15,5 @@ docker exec -it sor_demo yarn start
 
 # restore database from dump directory
 docker cp dump/ sor_demo_mongodb_1:/data/db/
+
+docker exec -it sordemo_mongodb_1 mongorestore /data/db/dump
