@@ -21,11 +21,9 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/IKyberNetwork.sol';
-import './ApproximateBuys.sol';
-import './SamplerUtils.sol';
 import '@openzeppelin/contracts/interfaces/IERC20Metadata.sol';
 
-contract KyberSampler is SamplerUtils, ApproximateBuys {
+contract KyberSampler {
     /// @dev Gas limit for Kyber calls.
     uint256 private constant KYBER_CALL_GAS = 500e3; // 500k
     /// @dev Kyber ETH pseudo-address.
@@ -62,7 +60,6 @@ contract KyberSampler is SamplerUtils, ApproximateBuys {
             uint256[] memory makerTokenAmounts
         )
     {
-        _assertValidPair(makerToken, takerToken);
         reserveId = _getNextReserveId(opts, takerToken, makerToken);
         if (reserveId == 0x0) {
             return (reserveId, hint, makerTokenAmounts);
@@ -90,53 +87,6 @@ contract KyberSampler is SamplerUtils, ApproximateBuys {
                 break;
             }
         }
-    }
-
-    /// @dev Sample buy quotes from Kyber.
-    /// @param opts KyberSamplerOpts The nth reserve
-    /// @param takerToken Address of the taker token (what to sell).
-    /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return reserveId The id of the reserve found at reserveOffset
-    /// @return hint The hint for the selected reserve
-    /// @return takerTokenAmounts Taker amounts sold at each maker token amount.
-    function sampleBuysFromKyberNetwork(
-        KyberSamplerOpts memory opts,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    )
-        public
-        view
-        returns (
-            bytes32 reserveId,
-            bytes memory hint,
-            uint256[] memory takerTokenAmounts
-        )
-    {
-        _assertValidPair(makerToken, takerToken);
-
-        reserveId = _getNextReserveId(opts, takerToken, makerToken);
-        if (reserveId == 0x0) {
-            return (reserveId, hint, takerTokenAmounts);
-        }
-        opts.hint = this.encodeKyberHint(
-            opts,
-            reserveId,
-            takerToken,
-            makerToken
-        );
-        hint = opts.hint;
-
-        takerTokenAmounts = _sampleApproximateBuys(
-            ApproximateBuyQuoteOpts({
-                makerTokenData: abi.encode(makerToken, opts),
-                takerTokenData: abi.encode(takerToken, opts),
-                getSellQuoteCallback: _sampleSellForApproximateBuyFromKyber
-            }),
-            makerTokenAmounts
-        );
-        return (reserveId, hint, takerTokenAmounts);
     }
 
     function encodeKyberHint(
@@ -200,34 +150,6 @@ contract KyberSampler is SamplerUtils, ApproximateBuys {
             } catch (bytes memory) {
                 // Swallow failures, leaving all results as zero.
             }
-        }
-    }
-
-    function _sampleSellForApproximateBuyFromKyber(
-        bytes memory takerTokenData,
-        bytes memory makerTokenData,
-        uint256 sellAmount
-    ) private view returns (uint256) {
-        (address makerToken, KyberSamplerOpts memory opts) = abi.decode(
-            makerTokenData,
-            (address, KyberSamplerOpts)
-        );
-        (address takerToken, ) = abi.decode(
-            takerTokenData,
-            (address, KyberSamplerOpts)
-        );
-        try
-            this.sampleSellFromKyberNetwork(
-                opts,
-                takerToken,
-                makerToken,
-                sellAmount
-            )
-        returns (uint256 amount) {
-            return amount;
-        } catch (bytes memory) {
-            // Swallow failures, leaving all results as zero.
-            return 0;
         }
     }
 

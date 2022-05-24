@@ -1,5 +1,3 @@
-import { BigNumberish, BytesLike } from 'ethers';
-
 import { Protocol } from './types';
 
 export type SampleParams =
@@ -17,7 +15,7 @@ export type SampleParams =
 
 export type SampleFromBalancerV2Params = {
   protocol: Protocol.BalancerV2;
-  poolId: BytesLike;
+  pool: string;
   vault: string;
   takerToken: string;
   makerToken: string;
@@ -39,22 +37,22 @@ export type SampleFromCurveParmas = {
 export type SampleFromUniswapV3Params = {
   protocol: Protocol.UniswapV3;
   quoter: string;
-  path: string[];
-  fees: BigNumberish[];
+  pool: string;
+  takerToken: string;
+  makerToken: string;
 };
 
 export type SampleFromDODOParams = {
   protocol: Protocol.DODO;
-  registry: string;
   helper: string;
+  pool: string;
   takerToken: string;
   makerToken: string;
 };
 
 export type SampleFromDODOV2Params = {
   protocol: Protocol.DODOV2;
-  registry: string;
-  offset: number;
+  pool: string;
   takerToken: string;
   makerToken: string;
 };

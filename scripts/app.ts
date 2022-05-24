@@ -6,7 +6,6 @@ import Koa from 'koa';
 import deploymentsJSON from '../deployments/deployments.json';
 import { Database } from '../src/database';
 import { DexAggregator } from '../src/dex_aggregator';
-import { Token, TokenAmount } from '../src/entities';
 import { logger } from '../src/logging';
 import {
   ChainId,
@@ -50,20 +49,14 @@ async function getApp() {
   router.get('/quote', async ctx => {
     const query = ctx.query as unknown as QuoteParam;
     logger.info(`query: ${JSON.stringify(query)}`);
-    const baseToken = new Token({
-      chainId,
-      address: query.fromTokenAddress as string,
-      decimals: 0,
-    });
-    const quoteToken = new Token({
-      chainId,
-      address: query.toTokenAddress as string,
-      decimals: 0,
-    });
-    const amount = new TokenAmount(baseToken, query.amount as string);
+    const fromTokenAddress = query.fromTokenAddress as string;
+    const toTokenAddress = query.toTokenAddress as string;
+    const amount = query.amount as string;
+
     const swapRoute = await dexAggregator.quote({
       amount,
-      quoteToken,
+      fromTokenAddress,
+      toTokenAddress,
       tradeType,
     });
     if (!swapRoute) {
@@ -71,9 +64,9 @@ async function getApp() {
     }
     ctx.status = 200;
     const quoteRes: QuoteResponse = {
-      fromToken: baseToken.address,
-      toToken: quoteToken.address,
-      fromTokenAmount: amount.amount.toString(),
+      fromToken: fromTokenAddress,
+      toToken: toTokenAddress,
+      fromTokenAmount: amount,
       toTokenAmount: swapRoute.routeWithQuote.quote.amount.toString(),
       protocols: multiplexRouteQToString(swapRoute.routeWithQuote),
     };
@@ -84,20 +77,14 @@ async function getApp() {
   router.get('/swap', async ctx => {
     const query = ctx.query as unknown as SwapParam;
     logger.info(`query: ${JSON.stringify(query)}`);
-    const baseToken = new Token({
-      chainId,
-      address: query.fromTokenAddress as string,
-      decimals: 0,
-    });
-    const quoteToken = new Token({
-      chainId,
-      address: query.toTokenAddress as string,
-      decimals: 0,
-    });
-    const amount = new TokenAmount(baseToken, query.amount as string);
+    const fromTokenAddress = query.fromTokenAddress as string;
+    const toTokenAddress = query.toTokenAddress as string;
+    const amount = query.amount as string;
+
     const swapRoute = await dexAggregator.quote({
       amount,
-      quoteToken,
+      fromTokenAddress,
+      toTokenAddress,
       tradeType,
     });
     if (!swapRoute) {
@@ -113,9 +100,9 @@ async function getApp() {
     ).toString();
     const gasPrice = (await provider.getGasPrice()).toString();
     const quoteRes: SwapResponse = {
-      fromToken: baseToken.address,
-      toToken: quoteToken.address,
-      fromTokenAmount: amount.amount.toString(),
+      fromToken: fromTokenAddress,
+      toToken: toTokenAddress,
+      fromTokenAmount: amount,
       toTokenAmount: swapRoute.routeWithQuote.quote.amount.toString(),
       data,
       value: '0',

@@ -1,14 +1,14 @@
-import { ethers } from 'ethers';
+import { BigNumberish, ethers } from 'ethers';
 
 import { SwapRouteV2 } from './best_swap_route';
 import { Database } from './database';
-import { Token, TokenAmount } from './entities';
 import { AlphaRouter, IRouter } from './router';
 import { ChainId, Protocol, TradeType } from './types';
 
 type TradeParams = {
-  amount: TokenAmount;
-  quoteToken: Token;
+  amount: BigNumberish;
+  fromTokenAddress: string;
+  toTokenAddress: string;
   tradeType: TradeType;
 };
 
@@ -59,33 +59,40 @@ export class DexAggregator {
 
   public async quote({
     amount,
-    quoteToken,
+    fromTokenAddress,
+    toTokenAddress,
     tradeType,
   }: TradeParams): Promise<SwapRouteV2 | undefined> {
-    const swapRoute = await this.router.route(amount, quoteToken, tradeType, {
-      // tx calldata is too large to send
-      maxSwapsPerPath: 2,
-      includedSources: [
-        Protocol.UniswapV2,
-        Protocol.UniswapV3,
-        Protocol.Curve,
-        Protocol.CurveV2,
-        Protocol.Balancer,
-        Protocol.BalancerV2,
-        Protocol.DODOV2,
-        Protocol.DODO,
-      ],
-      maxSplits: 6,
-      poolSelections: {
-        topN: 10,
-        topNSecondHop: 6,
-        topNTokenInOut: 8,
-        topNDirectSwaps: 1,
-        topNWithEachBaseToken: 2,
-        topNWithBaseToken: 5,
-        topNWithBaseTokenInSet: true,
-      },
-    });
+    const swapRoute = await this.router.route(
+      amount,
+      fromTokenAddress,
+      toTokenAddress,
+      tradeType,
+      {
+        // tx calldata is too large to send
+        maxSwapsPerPath: 2,
+        includedSources: [
+          Protocol.UniswapV2,
+          Protocol.UniswapV3,
+          Protocol.Curve,
+          Protocol.CurveV2,
+          Protocol.Balancer,
+          Protocol.BalancerV2,
+          Protocol.DODOV2,
+          Protocol.DODO,
+        ],
+        maxSplits: 6,
+        poolSelections: {
+          topN: 10,
+          topNSecondHop: 6,
+          topNTokenInOut: 8,
+          topNDirectSwaps: 1,
+          topNWithEachBaseToken: 2,
+          topNWithBaseToken: 5,
+          topNWithBaseTokenInSet: true,
+        },
+      }
+    );
     return swapRoute;
   }
 

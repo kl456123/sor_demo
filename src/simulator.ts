@@ -14,11 +14,11 @@ export const BINANCE7 = '0xbe0eb53f46cd790cd13851d5eff43d12404d33e8';
 export const MULTICHAIN = '0xc564ee9f21ed8a2d8e7e76c085740d5e4c5fafbe';
 
 // util functions
-export async function impersonateAccount(account: string, provider: ethers.providers.JsonRpcProvider) {
-  await provider.send(
-    'hardhat_impersonateAccount',
-    [account],
-  );
+export async function impersonateAccount(
+  account: string,
+  provider: ethers.providers.JsonRpcProvider
+) {
+  await provider.send('hardhat_impersonateAccount', [account]);
   return provider.getSigner(account);
 }
 
@@ -97,9 +97,19 @@ export async function prepareTokens(
     throw new Error(`trading from tokenAddr(${tokenAddr}) is not supported`);
   }
   if (BigNumber.from(ethValue).gt(0)) {
-    await impersonateAndTransfer(ethValue, wealthyAccounts.ETH, walletAddress, provider);
+    await impersonateAndTransfer(
+      ethValue,
+      wealthyAccounts.ETH,
+      walletAddress,
+      provider
+    );
   }
   if (BigNumber.from(tokenAmount).gt(0)) {
-    await impersonateAndTransfer(tokenAmount, accounts[0], walletAddress, provider);
+    await impersonateAndTransfer(
+      tokenAmount,
+      accounts[0],
+      walletAddress,
+      provider
+    );
   }
 }

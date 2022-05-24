@@ -18,7 +18,11 @@ import {
   MultiplexRouteWithValidQuote,
   RouteType,
 } from './entitiesv2';
-import { UniswapV3PoolData } from './markets/types';
+import {
+  BalancerV2PoolData,
+  CurvePoolData,
+  UniswapV3PoolData,
+} from './markets/types';
 import {
   BatchSellSubcall,
   createTransformations,
@@ -63,18 +67,68 @@ export class QuoteConsumer {
       }
       case Protocol.CurveV2:
       case Protocol.Curve: {
+        const poolData = route.pool.poolData as CurvePoolData;
+        const tokenAddrs = route.pool.tokens.map(token =>
+          token.address.toLowerCase()
+        );
+        let exchangeFunctionSelector = '0x00000000';
+        const protocol = route.pool.protocol;
+        let fromTokenIdx = tokenAddrs.findIndex(
+          tokenAddr => tokenAddr == route.input.address.toLowerCase()
+        );
+        let toTokenIdx = tokenAddrs.findIndex(
+          tokenAddr => tokenAddr == route.output.address.toLowerCase()
+        );
+        let useWrapped = false;
+        if (fromTokenIdx === -1 || toTokenIdx === -1) {
+          fromTokenIdx = poolData.wrappedToken.findIndex(
+            tokenAddr => tokenAddr == route.input.address.toLowerCase()
+          );
+          toTokenIdx = poolData.wrappedToken.findIndex(
+            tokenAddr => tokenAddr == route.output.address.toLowerCase()
+          );
+          useWrapped = true;
+        }
+
+        if (poolData.isMeta || poolData.isLending) {
+          if (protocol === Protocol.CurveV2) {
+            throw new Error(`incorrect params for curvev2`);
+          }
+          if (useWrapped) {
+            exchangeFunctionSelector = ethers.utils
+              .keccak256(ethers.utils.toUtf8Bytes('exchange(int128,int128,uint256,uint256)'))
+              .substr(0, 10);
+          } else {
+            exchangeFunctionSelector = ethers.utils
+              .keccak256(ethers.utils.toUtf8Bytes('exchange_underlying(int128,int128,uint256,uint256)'))
+              .substr(0, 10);
+          }
+          // exchangeFunctionSelector = ethers.utils.keccak256('exchange_underlying(uint128,uint128,uint256,uint256)').substr(0, 10);
+        } else {
+          if (protocol === Protocol.Curve) {
+            exchangeFunctionSelector = ethers.utils
+              .keccak256(ethers.utils.toUtf8Bytes('exchange(int128,int128,uint256,uint256)'))
+              .substr(0, 10);
+          } else {
+            exchangeFunctionSelector = ethers.utils
+              .keccak256(ethers.utils.toUtf8Bytes('exchange(uint128,uint128,uint256,uint256)'))
+              .substr(0, 10);
+          }
+        }
         return {
           protocol: route.pool.protocol,
           poolAddress: route.pool.id,
-          fromToken: route.input.address,
-          toToken: route.output.address,
+          fromTokenIdx,
+          toTokenIdx,
+          exchangeFunctionSelector,
         };
       }
       case Protocol.BalancerV2: {
         const vault = BALANCER_V2_VAULT_ADDRESS_BY_CHAIN[this.chainId];
+        const poolData = route.pool.poolData as BalancerV2PoolData;
         return {
           protocol: Protocol.BalancerV2,
-          poolId: route.pool.id,
+          poolId: poolData.id,
           vault,
           takerToken: route.input.address,
           makerToken: route.output.address,

@@ -21,8 +21,6 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import './interfaces/ICurve.sol';
-import './ApproximateBuys.sol';
-import './SamplerUtils.sol';
 
 interface CurvePool {
     function get_dy_underlying(
@@ -57,7 +55,7 @@ interface CryptoRegistry {
         address pool,
         address from,
         address to
-    ) external view returns (uint128, uint128);
+    ) external view returns (uint256, uint256);
 }
 
 interface CurveRegistry {
@@ -75,7 +73,7 @@ interface CurveRegistry {
         );
 }
 
-contract CurveSampler is SamplerUtils, ApproximateBuys {
+contract CurveSampler {
     /// @dev Information for sampling from curve sources.
 
     /// @dev Base gas limit for Curve calls. Some Curves have multiple tokens
@@ -237,11 +235,17 @@ contract CurveSampler is SamplerUtils, ApproximateBuys {
         } catch {
             int128 _fromTokenIdx = int128(int256(fromTokenIdx));
             int128 _toTokenIdx = int128(int256(toTokenIdx));
-            buyAmount = CurvePool(poolAddress).get_dy(
-                _fromTokenIdx,
-                _toTokenIdx,
-                sellAmount
-            );
+            try
+                CurvePool(poolAddress).get_dy(
+                    _fromTokenIdx,
+                    _toTokenIdx,
+                    sellAmount
+                )
+            returns (uint256 amount) {
+                buyAmount = amount;
+            } catch (bytes memory) {
+                buyAmount = 0;
+            }
         }
     }
 
@@ -262,25 +266,17 @@ contract CurveSampler is SamplerUtils, ApproximateBuys {
         } catch {
             int128 _fromTokenIdx = int128(int256(fromTokenIdx));
             int128 _toTokenIdx = int128(int256(toTokenIdx));
-            buyAmount = CurvePool(poolAddress).get_dy_underlying(
-                _fromTokenIdx,
-                _toTokenIdx,
-                sellAmount
-            );
+            try
+                CurvePool(poolAddress).get_dy_underlying(
+                    _fromTokenIdx,
+                    _toTokenIdx,
+                    sellAmount
+                )
+            returns (uint256 amount) {
+                buyAmount = amount;
+            } catch (bytes memory) {
+                buyAmount = 0;
+            }
         }
     }
-
-    /// @dev Sample buy quotes from Curve.
-    /// @param poolAddress Curve information specific to this token pair.
-    /// @param fromToken Index of the taker token (what to sell).
-    /// @param toToken Index of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromCurve(
-        address poolAddress,
-        address fromToken,
-        address toToken,
-        uint256[] memory makerTokenAmounts
-    ) public view returns (uint256[] memory takerTokenAmounts) {}
 }

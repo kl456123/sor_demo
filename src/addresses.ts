@@ -13,8 +13,10 @@ export const contractAddressesByChain = valueByChainId<{
 }>(
   {
     [ChainId.MAINNET]: {
-      quoter: '0xE9BBD6eC0c9Ca71d3DcCD1282EE9de4F811E50aF',
-      // quoter: '0xd8c38704c9937ea3312de29f824b4ad3450a5e61',
+      quoter: '0x5eAe840294c757e6fffE462e9C989944386613d4',
+      // quoter: '0xF956D032564530adb94a3ff9E60aAC87e7F3eB8D',
+      // quoter: '0xE9BBD6eC0c9Ca71d3DcCD1282EE9de4F811E50aF',
+      // quoter: '0x8F4ec854Dd12F1fe79500a1f53D0cbB30f9b6134',
       swapper: '0xdef1c0ded9bec7f1a1670819833240f027b25eff',
     },
   },
@@ -120,7 +122,7 @@ export const UNISWAPV3_CONFIG_BY_CHAIN_ID = valueByChainId<{
 }>(
   {
     [ChainId.MAINNET]: {
-      quoter: '0xb27308f9f90d607463bb33ea1bebb41c27ce5ab6',
+      quoter: '0x61ffe014ba17989e743c5f6cb21bf9697530b21e',
       router: '0xe592427a0aece92de3edee1f18e0157c05861564',
     },
     [ChainId.ROPSTEN]: {

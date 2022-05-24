@@ -66,10 +66,6 @@ export type RfqOrder = {
 
 export type BridgeData = QuoteParams;
 
-export type UniswapV3Data = {
-  protocol: Protocol.UniswapV3;
-};
-
 export type TransformData = FillQuoteTransformData;
 
 export type FillQuoteTransformData = {
@@ -160,8 +156,9 @@ export type QuoteFromUniswapV2Params = {
 export type QuoteFromCurveParmas = {
   protocol: Protocol.Curve | Protocol.CurveV2;
   poolAddress: string;
-  fromToken: string;
-  toToken: string;
+  fromTokenIdx: number;
+  toTokenIdx: number;
+  exchangeFunctionSelector: BytesLike;
 };
 
 export type QuoteFromUniswapV3Params = {
@@ -324,8 +321,8 @@ export function encodeQuoter(params: QuoteParams): BytesLike {
         [
           {
             poolAddress: params.poolAddress,
-            fromToken: params.fromToken,
-            toToken: params.toToken,
+            fromTokenIdx: params.fromTokenIdx,
+            toTokenIdx: params.toTokenIdx,
           },
         ]
       );
@@ -425,8 +422,11 @@ export function encodeBridgeOrder(params: BridgeData): BytesLike {
         [
           {
             poolAddress: params.poolAddress,
-            fromToken: params.fromToken,
-            toToken: params.toToken,
+            exchangeFunctionSelector: params.exchangeFunctionSelector,
+            fromTokenIdx: params.fromTokenIdx,
+            toTokenIdx: params.toTokenIdx,
+            // fromToken: params.fromToken,
+            // toToken: params.toToken,
           },
         ]
       );

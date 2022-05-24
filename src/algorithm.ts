@@ -6,7 +6,6 @@ import { PoolV2 as Pool, RouteV2 as Route } from './entitiesv2';
 import { logger } from './logging';
 import { PoolAccessor, RawPoolProvider } from './rawpool_provider';
 import { SourceFilters } from './source_filters';
-import { ITokenProvider } from './token_provider';
 import { ChainId, RawPool, RoutingConfig, TradeType } from './types';
 import { routeToString } from './utils';
 
@@ -94,7 +93,6 @@ export type GetCandidatePoolsParams = {
   tradeType: TradeType;
   routingConfig: RoutingConfig;
   rawPoolProvider: RawPoolProvider;
-  tokenProvider: ITokenProvider;
   chainId: ChainId;
 };
 
@@ -105,7 +103,6 @@ export async function getCandidatePools({
   tradeType,
   routingConfig,
   rawPoolProvider,
-  tokenProvider,
   chainId,
 }: GetCandidatePoolsParams): Promise<{ poolAccessor: PoolAccessor }> {
   const {
@@ -133,6 +130,7 @@ export async function getCandidatePools({
   const subgraphPoolsSorted = _(allPoolsRaw)
     .sortBy(tokenListPool => -tokenListPool.reserve)
     .value();
+
   const poolAddressesSoFar = new Set<string>();
   const addToAddressSet = (pools: RawPool[]) => {
     _(pools)
@@ -322,27 +320,8 @@ export async function getCandidatePools({
     .uniqBy(pool => pool.id)
     .value();
 
-  // get tokens and their infos on-chain
-  const tokenAddresses = _(subgraphPools)
-    .flatMap(subgraphPool => {
-      return subgraphPool.tokens;
-    })
-    .compact()
-    .uniqBy(tokenInfo => tokenInfo.address)
-    .value();
-
-  const tokenAccessor = await tokenProvider.getTokens(tokenAddresses, {
-    blockNumber,
-  });
-
-  const tokensMap: Record<string, Token> = {};
-  _.forEach(tokenAddresses, tokenInfo => {
-    tokensMap[tokenInfo.address] = tokenAccessor.getTokenByAddress(
-      tokenInfo.address
-    )!;
-  });
-
-  const poolAccessor = await rawPoolProvider.getPools(subgraphPools, tokensMap);
+  const tokensMap = await rawPoolProvider.getTokens();
+  const poolAccessor = rawPoolProvider.getPools(subgraphPools, tokensMap);
 
   return { poolAccessor };
 }

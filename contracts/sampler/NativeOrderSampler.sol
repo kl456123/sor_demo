@@ -49,20 +49,6 @@ interface IExchange {
         uint256 salt;
     }
 
-    /// @dev An RFQ limit order.
-    struct RfqOrder {
-        IERC20 makerToken;
-        IERC20 takerToken;
-        uint128 makerAmount;
-        uint128 takerAmount;
-        address maker;
-        address taker;
-        address txOrigin;
-        bytes32 pool;
-        uint64 expiry;
-        uint256 salt;
-    }
-
     /// @dev Info on a limit or RFQ order.
     struct OrderInfo {
         bytes32 orderHash;
@@ -89,14 +75,6 @@ interface IExchange {
         // EC Signature data.
         bytes32 s;
     }
-
-    /// @dev Get the order info for a limit order.
-    /// @param order The limit order.
-    /// @return orderInfo Info about the order.
-    function getLimitOrderInfo(LimitOrder memory order)
-        external
-        view
-        returns (OrderInfo memory orderInfo);
 
     /// @dev Get order info, fillable amount, and signature validity for a limit order.
     ///      Fillable amount is determined using balances and allowances of the maker.

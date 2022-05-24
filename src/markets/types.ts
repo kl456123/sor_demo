@@ -1,9 +1,4 @@
-import { BigNumber, BytesLike } from 'ethers';
-
-export interface BalancerV2PoolInfo {
-  poolId: BytesLike;
-  vault: string;
-}
+import { BigNumber } from 'ethers';
 
 export interface UniswapV2PoolData {
   reserve0: BigNumber;
@@ -12,4 +7,14 @@ export interface UniswapV2PoolData {
 
 export interface UniswapV3PoolData {
   feeTier: number;
+}
+
+export interface BalancerV2PoolData {
+  id: string;
+}
+
+export interface CurvePoolData {
+  isMeta: boolean;
+  isLending: boolean;
+  wrappedToken: string[];
 }

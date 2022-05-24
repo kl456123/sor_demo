@@ -20,38 +20,52 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import './interfaces/IUniswapV2Router01.sol';
+interface IKyberDmmRouter {
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] calldata pools,
+        address[] calldata path
+    ) external view returns (uint256[] memory amounts);
+}
 
-contract UniswapV2Sampler {
-    /// @dev Gas limit for UniswapV2 calls.
-    uint256 private constant UNISWAPV2_CALL_GAS = 150e3; // 150k
+contract KyberDmmSampler {
+    /// @dev Gas limit for KyberDmm calls.
+    uint256 private constant KYBER_DMM_CALL_GAS = 150e3; // 150k
+    struct KyberDmmSamplerOpts {
+        address pool;
+        IKyberDmmRouter router;
+    }
 
-    /// @dev Sample sell quotes from UniswapV2.
-    /// @param router Router to look up tokens and amounts
-    /// @param path Token route. Should be takerToken -> makerToken
+    /// @dev Sample sell quotes from KyberDmm.
+    /// @param opts Router to look up tokens and amounts
     /// @param takerTokenAmounts Taker token sell amount for each sample.
     /// @return makerTokenAmounts Maker amounts bought at each taker token
     ///         amount.
-    function sampleSellsFromUniswapV2(
-        address router,
-        address[] memory path,
+    function sampleSellsFromKyberDmm(
+        KyberDmmSamplerOpts memory opts,
+        address takerToken,
+        address makerToken,
         uint256[] memory takerTokenAmounts
     ) public view returns (uint256[] memory makerTokenAmounts) {
         uint256 numSamples = takerTokenAmounts.length;
         makerTokenAmounts = new uint256[](numSamples);
+        address[] memory pools = new address[](1);
+        address[] memory path = new address[](2);
+        pools[0] = opts.pool;
+        path[0] = takerToken;
+        path[1] = makerToken;
         for (uint256 i = 0; i < numSamples; i++) {
             try
-                IUniswapV2Router01(router).getAmountsOut{
-                    gas: UNISWAPV2_CALL_GAS
-                }(takerTokenAmounts[i], path)
+                opts.router.getAmountsOut{gas: KYBER_DMM_CALL_GAS}(
+                    takerTokenAmounts[i],
+                    pools,
+                    path
+                )
             returns (uint256[] memory amounts) {
-                makerTokenAmounts[i] = amounts[path.length - 1];
-                // Break early if there are 0 amounts
-                if (makerTokenAmounts[i] == 0) {
-                    break;
-                }
-            } catch (bytes memory) {
-                // Swallow failures, leaving all results as zero.
+                makerTokenAmounts[i] = amounts[1];
+            } catch (bytes memory) {}
+            // Break early if there are 0 amounts
+            if (makerTokenAmounts[i] == 0) {
                 break;
             }
         }

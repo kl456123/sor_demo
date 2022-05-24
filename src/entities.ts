@@ -22,7 +22,7 @@ class Token {
     address: string;
     decimals: number;
     name?: string;
-    symbol?: string;
+    symbol: string;
   }) {
     this.name = name;
     this.chainId = chainId;

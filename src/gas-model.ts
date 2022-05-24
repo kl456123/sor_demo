@@ -5,8 +5,8 @@ import { Token, TokenAmount } from './entities';
 import { MultiplexRoute } from './entitiesv2';
 import { UniswapV2PoolData } from './markets/types';
 import { RawPoolProvider } from './rawpool_provider';
-import { ChainId, Protocol } from './types';
 import { IUniswapV2Pair__factory } from './typechain';
+import { ChainId, Protocol } from './types';
 
 const BASE_SWAP_COST = BigNumber.from(100000);
 

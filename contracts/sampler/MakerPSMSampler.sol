@@ -20,7 +20,6 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import './SamplerUtils.sol';
 import '@openzeppelin/contracts/utils/math/SafeMath.sol';
 
 interface IPSM {
@@ -76,7 +75,7 @@ interface IVAT {
         );
 }
 
-contract MakerPSMSampler is SamplerUtils {
+contract MakerPSMSampler {
     using SafeMath for uint256;
 
     /// @dev Information about which PSM module to use
@@ -106,7 +105,6 @@ contract MakerPSMSampler is SamplerUtils {
         address makerToken,
         uint256[] memory takerTokenAmounts
     ) public view returns (uint256[] memory makerTokenAmounts) {
-        _assertValidPair(makerToken, takerToken);
         IPSM psm = IPSM(psmInfo.psmAddress);
         IVAT vat = IVAT(psm.vat());
 
@@ -131,40 +129,6 @@ contract MakerPSMSampler is SamplerUtils {
                 break;
             }
             makerTokenAmounts[i] = buyAmount;
-        }
-    }
-
-    function sampleBuysFromMakerPsm(
-        MakerPsmInfo memory psmInfo,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    ) public view returns (uint256[] memory takerTokenAmounts) {
-        _assertValidPair(makerToken, takerToken);
-        IPSM psm = IPSM(psmInfo.psmAddress);
-        IVAT vat = IVAT(psm.vat());
-
-        uint256 numSamples = makerTokenAmounts.length;
-        takerTokenAmounts = new uint256[](numSamples);
-        if (makerToken != psm.dai() && takerToken != psm.dai()) {
-            return takerTokenAmounts;
-        }
-
-        for (uint256 i = 0; i < numSamples; i++) {
-            uint256 sellAmount = _samplePSMBuy(
-                psmInfo,
-                makerToken,
-                takerToken,
-                makerTokenAmounts[i],
-                psm,
-                vat
-            );
-
-            if (sellAmount == 0) {
-                break;
-            }
-
-            takerTokenAmounts[i] = sellAmount;
         }
     }
 
@@ -227,70 +191,6 @@ contract MakerPSMSampler is SamplerUtils {
                 .div(feeDivisorInWad);
 
             return makerTokenAmountInGemTokenBaseUnits;
-        }
-
-        return 0;
-    }
-
-    function _samplePSMBuy(
-        MakerPsmInfo memory psmInfo,
-        address makerToken,
-        address takerToken,
-        uint256 makerTokenAmount,
-        IPSM psm,
-        IVAT vat
-    ) private view returns (uint256) {
-        (
-            uint256 totalDebtInWad,
-            ,
-            ,
-            uint256 debtCeilingInRad,
-            uint256 debtFloorInRad
-        ) = vat.ilks(psmInfo.ilkIdentifier);
-
-        if (takerToken == psmInfo.gemTokenAddress) {
-            // Simulate sellGem
-            // Selling USDC to the PSM, increasing the total debt
-            uint256 makerTokenAmountInWad = makerTokenAmount;
-            uint256 feeDivisorInWad = WAD.sub(psm.tin()); // eg. 0.999 * 10 ** 18 with 0.1% tin;
-            uint256 takerTokenAmountInWad = makerTokenAmountInWad.mul(WAD).div(
-                feeDivisorInWad
-            );
-            uint256 newTotalDebtInRad = totalDebtInWad
-                .add(takerTokenAmountInWad)
-                .mul(RAY);
-
-            // PSM is too full to fit
-            if (newTotalDebtInRad >= debtCeilingInRad) {
-                return 0;
-            }
-
-            uint256 takerTokenAmountInGemInGemBaseUnits = (
-                takerTokenAmountInWad.div(1e12)
-            ).add(1); // Add 1 to deal with cut off decimals converting to lower decimals
-
-            return takerTokenAmountInGemInGemBaseUnits;
-        } else if (makerToken == psmInfo.gemTokenAddress) {
-            // Simulate buyGem
-            // Buying USDC from the PSM, decreasing the total debt
-            uint256 makerTokenAmountInWad = makerTokenAmount.mul(1e12);
-            uint256 feeMultiplierInWad = WAD.add(psm.tout()); // eg. 1.001 * 10 ** 18 with 0.1% tout;
-            uint256 takerTokenAmountInWad = makerTokenAmountInWad
-                .mul(feeMultiplierInWad)
-                .div(WAD);
-            if (takerTokenAmountInWad > totalDebtInWad) {
-                return 0;
-            }
-            uint256 newTotalDebtInRad = totalDebtInWad
-                .sub(takerTokenAmountInWad)
-                .mul(RAY);
-
-            // PSM is empty, not enough USDC to buy
-            if (newTotalDebtInRad <= debtFloorInRad) {
-                return 0;
-            }
-
-            return takerTokenAmountInWad;
         }
 
         return 0;

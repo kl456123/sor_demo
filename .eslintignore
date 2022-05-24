@@ -3,5 +3,5 @@ artifacts
 cache
 coverage
 typechain-types/*
-src/types/*
+src/typechain/*
 jest.config.ts

@@ -53,6 +53,13 @@ type DatabasePool = {
   latestDailyVolumeUSD: string;
 };
 
+type DatabaseToken = {
+  id: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+};
+
 export type PoolAccessor = {
   getPool: (tokenA: Token, tokenB: Token) => Pool[];
   getPoolByAddress: (address: string) => Pool | undefined;
@@ -65,7 +72,9 @@ export class RawPoolProvider {
   private nodecache: NodeCache;
   protected blacklist: string[] = [];
   protected cachedPools: RawPool[] = [];
+  protected cachedTokens: { [address: string]: Token } = {};
   protected poolCollectionName: string;
+  protected tokenCollectionName: string;
   constructor(public readonly chainId: ChainId, protected database: Database) {
     this.nodecache = new NodeCache({ stdTTL: 3600, useClones: false });
 
@@ -78,6 +87,7 @@ export class RawPoolProvider {
       this.blacklist.forEach(t => globalBlacklist().add(t));
     }
     this.poolCollectionName = 'pools';
+    this.tokenCollectionName = 'tokens';
   }
 
   public async fetchPoolsFromDatabase(protocols: Protocol[]) {
@@ -85,13 +95,12 @@ export class RawPoolProvider {
     const poolsFetch = await this.database.loadMany<DatabasePool>(
       {
         latestDailyVolumeUSD: { $gt: '0' },
-        protocol: { $ne: DatabaseProtocol.Curve },
       },
       this.poolCollectionName
     );
     const pools: RawPool[] = poolsFetch.map(poolFetch => {
       const tokens: RawToken[] = poolFetch.tokens.map(token => ({
-        address: token.id,
+        address: token.id.toLowerCase(),
         symbol: token.symbol,
       }));
       return {
@@ -103,6 +112,38 @@ export class RawPoolProvider {
       };
     });
     return pools;
+  }
+
+  public async fetchTokensFromDatabase() {
+    const tokensFetch = await this.database.loadMany<DatabaseToken>(
+      {},
+      this.tokenCollectionName
+    );
+    const tokens = tokensFetch.map(
+      rawToken =>
+        new Token({
+          chainId: this.chainId,
+          address: rawToken.id.toLowerCase(),
+          decimals: rawToken.decimals,
+          name: rawToken.name,
+          symbol: rawToken.symbol,
+        })
+    );
+    const addressToToken: { [address: string]: Token } = {};
+    tokens.forEach(token => {
+      addressToToken[token.address.toLowerCase()] = token;
+    });
+    return addressToToken;
+  }
+
+  public async getTokens(): Promise<{ [address: string]: Token }> {
+    if (Object.keys(this.cachedTokens).length) {
+      return this.cachedTokens;
+    }
+    const tokensFetch = await this.fetchTokensFromDatabase();
+    // cache
+    this.cachedTokens = tokensFetch;
+    return tokensFetch;
   }
 
   public async getRawPools(protocols: Protocol[]): Promise<RawPool[]> {

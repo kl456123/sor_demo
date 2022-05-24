@@ -1,4 +1,4 @@
-import { providers } from 'ethers';
+import { BigNumberish, providers } from 'ethers';
 import _ from 'lodash';
 
 import { Database } from '../src/database';
@@ -11,7 +11,7 @@ import {
 import { getBestSwapRouteV2, SwapRouteV2 } from './best_swap_route';
 import { Composer } from './composer';
 import { DEFAULT_ROUTER_CONFIG } from './constants';
-import { Token, TokenAmount } from './entities';
+import { TokenAmount } from './entities';
 import { GasModelFactory } from './gas-model';
 import {
   ETHGasStationGasPriceProvider,
@@ -21,14 +21,13 @@ import { logger } from './logging';
 import { QuoteConsumer } from './quote_consumer';
 import { QuoterProvider } from './quoter_provider';
 import { RawPoolProvider } from './rawpool_provider';
-import { SourceFilters } from './source_filters';
-import { ITokenProvider, TokenProvider } from './token_provider';
-import { ChainId, Protocol, RoutingConfig, TradeType } from './types';
+import { ChainId, RoutingConfig, TradeType } from './types';
 
 export abstract class IRouter {
   abstract route(
-    amount: TokenAmount,
-    quoteToken: Token,
+    inputAmount: BigNumberish,
+    fromTokenAddress: string,
+    toTokenAddress: string,
     tradeType: TradeType,
     partialRoutingConfig?: Partial<RoutingConfig>
   ): Promise<SwapRouteV2 | undefined>;
@@ -47,9 +46,7 @@ export class AlphaRouter implements IRouter {
   protected chainId: ChainId;
   protected provider: providers.BaseProvider;
   protected quoterProvider: QuoterProvider;
-  protected tokenProvider: ITokenProvider;
   protected poolProvider: RawPoolProvider;
-  protected sourceFilters: SourceFilters;
   protected quoteConsumer: QuoteConsumer;
   protected gasPriceProvider: IGasPriceProvider;
   constructor({
@@ -63,14 +60,12 @@ export class AlphaRouter implements IRouter {
     this.provider = provider;
 
     // data provider
-    this.tokenProvider = new TokenProvider(this.chainId);
     this.poolProvider = new RawPoolProvider(this.chainId, database);
     this.quoterProvider = new QuoterProvider(
       chainId,
       provider,
       this.poolProvider
     );
-    this.sourceFilters = SourceFilters.all().exclude(Protocol.Unknow);
     this.quoteConsumer = new QuoteConsumer(
       this.chainId,
       this.provider,
@@ -82,8 +77,9 @@ export class AlphaRouter implements IRouter {
   }
 
   public async route(
-    amount: TokenAmount,
-    quoteToken: Token,
+    inputAmount: BigNumberish,
+    fromTokenAddress: string,
+    toTokenAddress: string,
     tradeType: TradeType,
     partialRoutingConfig: Partial<RoutingConfig> = {}
   ): Promise<SwapRouteV2 | undefined> {
@@ -96,6 +92,12 @@ export class AlphaRouter implements IRouter {
       partialRoutingConfig,
       { blockNumber }
     );
+    const tokens = await this.poolProvider.getTokens();
+
+    const baseToken = tokens[fromTokenAddress.toLowerCase()];
+    const quoteToken = tokens[toTokenAddress.toLowerCase()];
+    const amount = new TokenAmount(baseToken, inputAmount);
+
     // log configs
     logger.info(`routing config: ${JSON.stringify(routingConfig, null, 2)}`);
 
@@ -122,7 +124,6 @@ export class AlphaRouter implements IRouter {
       routingConfig,
       tradeType,
       rawPoolProvider: this.poolProvider,
-      tokenProvider: this.tokenProvider,
       chainId: this.chainId,
     });
     const pools = poolAccessor.getAllPools();

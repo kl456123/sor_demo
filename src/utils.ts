@@ -24,12 +24,12 @@ export const multiplexRouteQToString = (
 ): string => {
   if (routeWithQuote.routeType == RouteType.DIRECTSWAP) {
     const routeStr = [];
-    const directSwapRotue = routeWithQuote.route as DirectSwapRoute;
-    routeStr.push(`${directSwapRotue.input.symbol}`);
+    const directSwapRoute = routeWithQuote.route as DirectSwapRoute;
+    routeStr.push(`${directSwapRoute.input.symbol}`);
     routeStr.push(
-      `-->(pool: [${directSwapRotue.pool.protocol}(${routeWithQuote.percent}%)])-->`
+      `-->(pool: ${directSwapRoute.pool.id}[${directSwapRoute.pool.protocol}(${routeWithQuote.percent}%)])-->`
     );
-    routeStr.push(`${directSwapRotue.output.symbol}`);
+    routeStr.push(`${directSwapRoute.output.symbol}`);
     return routeStr.join('');
   }
   const resultStr = [];
@@ -42,5 +42,5 @@ export const multiplexRouteQToString = (
 
   // fallback to batch route
   resultStr.push(routesStr.join('\n'));
-  return resultStr.join('');
+  return resultStr.join('').toString();
 };

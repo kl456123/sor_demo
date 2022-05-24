@@ -85,38 +85,6 @@ contract BancorSampler {
         return (bancorNetwork, path, makerTokenAmounts);
     }
 
-    /// @dev Sample buy quotes from Bancor. Unimplemented
-    /// @param opts BancorSamplerOpts The Bancor registry contract address and paths
-    /// @param takerToken Address of the taker token (what to sell).
-    /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token buy amount for each sample.
-    /// @return bancorNetwork the Bancor Network address
-    /// @return path the selected conversion path from bancor
-    /// @return takerTokenAmounts Taker amounts sold at each maker token
-    ///         amount.
-    function sampleBuysFromBancor(
-        BancorSamplerOpts memory opts,
-        address takerToken,
-        address makerToken,
-        uint256[] memory makerTokenAmounts
-    )
-        public
-        pure
-        returns (
-            address bancorNetwork,
-            address[] memory path,
-            uint256[] memory takerTokenAmounts
-        )
-    {
-        opts;
-        takerToken;
-        makerToken;
-        makerTokenAmounts;
-        bancorNetwork;
-        path;
-        takerTokenAmounts;
-    }
-
     function _findBestPath(
         BancorSamplerOpts memory opts,
         address takerToken,
