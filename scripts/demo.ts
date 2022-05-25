@@ -8,7 +8,6 @@ import { TOKENS } from '../src/base_token';
 import { globalBlacklist } from '../src/blacklist';
 import { Database } from '../src/database';
 import { DexAggregator } from '../src/dex_aggregator';
-import { TokenAmount } from '../src/entities';
 import { logger } from '../src/logging';
 import { ChainId, TradeType } from '../src/types';
 import { loadFixture } from '../test/utils/fixture';
@@ -40,23 +39,16 @@ async function main() {
   });
 
   // trade params
-  const baseToken = tokens.WETH;
-  const quoteToken = tokens.USDC;
+  const fromTokenAddress = tokens.WETH.address;
+  const toTokenAddress = tokens.USDC.address;
+  const amount = ethers.utils.parseUnits('1000', tokens.WETH.decimals);
   // find the best route for quote
   const tradeType = TradeType.EXACT_INPUT;
-  const amount = new TokenAmount(
-    baseToken,
-    ethers.utils.parseUnits('1000', baseToken.decimals)
-  );
-
   const inputToken: IERC20 = IERC20__factory.connect(
-    baseToken.address,
+    fromTokenAddress,
     deployer
   );
-  const outputToken: IERC20 = IERC20__factory.connect(
-    quoteToken.address,
-    deployer
-  );
+  const outputToken: IERC20 = IERC20__factory.connect(toTokenAddress, deployer);
   // approve first
   const max = ethers.constants.MaxUint256;
   await inputToken.approve(swapperAddress, max);
@@ -65,7 +57,8 @@ async function main() {
 
   const swapRoute = await dexAggregator.quote({
     amount,
-    quoteToken,
+    fromTokenAddress,
+    toTokenAddress,
     tradeType,
   });
   if (!swapRoute) {
@@ -89,7 +82,7 @@ async function main() {
   const after = await outputToken.balanceOf(deployerAddr);
   let actualVal = after.sub(before);
   if (inputToken.address === outputToken.address) {
-    actualVal = actualVal.add(amount.amount);
+    actualVal = actualVal.add(amount);
   }
   const expectVal = swapRoute.routeWithQuote.quote.amount;
   logger.info(

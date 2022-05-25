@@ -37,7 +37,7 @@ async function main() {
   );
   const amount = ethers.utils.parseUnits('100000000', 6).toString();
   const fromTokenAddress = tokens.USDC.address;
-  const toTokenAddress = tokens.USDT.address;
+  const toTokenAddress = tokens.WETH.address;
   const queryParam: QuoteParam = {
     fromTokenAddress,
     toTokenAddress,
@@ -53,11 +53,11 @@ async function main() {
   const slippage = '0';
   const ethValue = '0';
   const swapParam: SwapParam = {
-  amount,
-  fromTokenAddress,
-  toTokenAddress,
-  fromAddress,
-  slippage,
+    amount,
+    fromTokenAddress,
+    toTokenAddress,
+    fromAddress,
+    slippage,
   };
   const timeBefore1 = Date.now();
   const swapRes = await swap(swapParam);

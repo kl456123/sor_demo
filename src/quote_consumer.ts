@@ -96,22 +96,38 @@ export class QuoteConsumer {
           }
           if (useWrapped) {
             exchangeFunctionSelector = ethers.utils
-              .keccak256(ethers.utils.toUtf8Bytes('exchange(int128,int128,uint256,uint256)'))
+              .keccak256(
+                ethers.utils.toUtf8Bytes(
+                  'exchange(int128,int128,uint256,uint256)'
+                )
+              )
               .substr(0, 10);
           } else {
             exchangeFunctionSelector = ethers.utils
-              .keccak256(ethers.utils.toUtf8Bytes('exchange_underlying(int128,int128,uint256,uint256)'))
+              .keccak256(
+                ethers.utils.toUtf8Bytes(
+                  'exchange_underlying(int128,int128,uint256,uint256)'
+                )
+              )
               .substr(0, 10);
           }
           // exchangeFunctionSelector = ethers.utils.keccak256('exchange_underlying(uint128,uint128,uint256,uint256)').substr(0, 10);
         } else {
           if (protocol === Protocol.Curve) {
             exchangeFunctionSelector = ethers.utils
-              .keccak256(ethers.utils.toUtf8Bytes('exchange(int128,int128,uint256,uint256)'))
+              .keccak256(
+                ethers.utils.toUtf8Bytes(
+                  'exchange(int128,int128,uint256,uint256)'
+                )
+              )
               .substr(0, 10);
           } else {
             exchangeFunctionSelector = ethers.utils
-              .keccak256(ethers.utils.toUtf8Bytes('exchange(uint128,uint128,uint256,uint256)'))
+              .keccak256(
+                ethers.utils.toUtf8Bytes(
+                  'exchange(uint128,uint128,uint256,uint256)'
+                )
+              )
               .substr(0, 10);
           }
         }
